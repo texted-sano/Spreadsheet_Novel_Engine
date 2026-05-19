@@ -492,7 +492,8 @@ class NovelGameEngine {
       isAuto: false, isSkip: false, skipTimer: null, prevScreen: 'title-screen', 
       saveMode: 'save', flags: {}, history: [], logs: [], uiHidden: false, 
       screenEffect: '', particleType: '', currentVoice: null, bgmFadeTimer: null, 
-      charVoices: {}, currentVoiceBlobUrl: null, currentChapter: ''
+      charVoices: {}, currentVoiceBlobUrl: null, currentChapter: '',
+      chapterStartData: null
     };
 
     this.el = {
@@ -637,7 +638,7 @@ class NovelGameEngine {
     this.playSysSe(settings.seStart); 
     this.state.index = 0;
     
-    this.state.flags = {}; this.state.history = []; this.state.logs = []; this.state.charVoices = {}; this.state.currentChapter = '';
+    this.state.flags = {}; this.state.history = []; this.state.logs = []; this.state.charVoices = {}; this.state.currentChapter = ''; this.state.chapterStartData = null;
     Object.values(this.charMap).forEach(e => { e.classList.add('hidden'); e.src = ''; e.dataset.charName = ''; });
     
     this.el.bgLayer.style.backgroundImage = ''; this.el.bgLayerNext.style.backgroundImage = ''; this.el.overlay.style.opacity = '0';
@@ -868,10 +869,8 @@ class NovelGameEngine {
       case 'chapter': {
         this.stopSkip();
         this.state.isAuto = false; this.$('btn-auto').classList.remove('on');
-        if (this.state.currentChapter) {
-          this.saveAutoSave(this.state.currentChapter);
-        }
         this.state.currentChapter = step.text || '';
+        this.saveAutoSave(this.state.currentChapter);
 
         const chapterIndex = this.state.index;
         let lookAhead = this.state.index + 1;
@@ -967,7 +966,7 @@ class NovelGameEngine {
       }
       case 'end': {
         if (this.state.currentChapter) {
-          this.saveAutoSave(this.state.currentChapter);
+          this.saveAutoSave(this.state.currentChapter + " (クリア)");
         }
         this.endGame(); 
         break;
@@ -1167,8 +1166,9 @@ class NovelGameEngine {
       bgm: this.state.currentBgm || '', 
       chars: charsSnap, 
       screenEffect: this.state.screenEffect, 
-      particleType: this.state.particleType, 
-      currentChapter: this.state.currentChapter
+      particleType: this.state.particleType,
+      currentChapter: this.state.currentChapter, 
+      chapterStartData: this.state.chapterStartData
     });
     if (this.state.history.length > 1000) this.state.history.shift();
   }
@@ -1228,7 +1228,8 @@ class NovelGameEngine {
     this.state.index = snap.index; 
     this.state.flags = JSON.parse(JSON.stringify(snap.flags)); 
     this.state.charVoices = JSON.parse(JSON.stringify(snap.charVoices || {})); 
-    this.state.currentChapter = snap.currentChapter || '';
+    this.state.currentChapter = snap.currentChapter || ''; 
+    this.state.chapterStartData = snap.chapterStartData || null;
     this.el.bgLayer.style.backgroundImage = snap.bg;
     if (snap.bgm && this.el.bgmPlayer.src !== snap.bgm) this.fadeBGM(snap.bgm, true); 
     
@@ -1259,7 +1260,8 @@ class NovelGameEngine {
     const snap = this.state.history[targetSnapIndex];
     this.state.history = this.state.history.slice(0, targetSnapIndex); this.state.logs = this.state.logs.filter(l => l.index < targetIndex);
     this.state.index = snap.index; this.state.flags = JSON.parse(JSON.stringify(snap.flags)); this.state.charVoices = JSON.parse(JSON.stringify(snap.charVoices || {}));
-    this.state.currentChapter = snap.currentChapter || '';
+    this.state.currentChapter = snap.currentChapter || ''; 
+    this.state.chapterStartData = snap.chapterStartData || null;
     this.el.bgLayer.style.backgroundImage = snap.bg;
     if (snap.bgm && this.el.bgmPlayer.src !== snap.bgm) { this.fadeBGM(snap.bgm, true); } else if (!snap.bgm) { this.fadeBGM(''); }
     
@@ -1315,7 +1317,7 @@ class NovelGameEngine {
       chars: charsData, 
       label: label, 
       screenEffect: this.state.screenEffect, 
-      particleType: this.state.particleType, 
+      particleType: this.state.particleType,
       currentChapter: this.state.currentChapter
     };
   }
@@ -1362,6 +1364,7 @@ class NovelGameEngine {
   saveAutoSave(chapterText) {
     const labelStr = `【${chapterText}】`; 
     const data = this.createSaveData(labelStr);
+    
     let autoSaves = [];
     try {
       autoSaves = JSON.parse(localStorage.getItem('save_auto_list') || '[]');
@@ -1375,8 +1378,8 @@ class NovelGameEngine {
     } else {
       autoSaves.push(data);
     }
-    autoSaves.sort((a, b) => a.index - b.index);
     
+    autoSaves.sort((a, b) => a.index - b.index);
     localStorage.setItem('save_auto_list', JSON.stringify(autoSaves));
   }
 
@@ -1384,6 +1387,7 @@ class NovelGameEngine {
     if (!data) return;
     this.state.index = data.index; this.state.flags = data.flags || {}; this.state.charVoices = data.charVoices || {}; 
     this.state.currentChapter = data.currentChapter || '';
+    this.state.chapterStartData = data.chapterStartData || null;
     this.state.history = []; this.state.logs = []; this.closeSaveLoad(); this.state.prevScreen = 'game-screen';
     
     this.fadeTransition(() => { 
