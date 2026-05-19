@@ -559,23 +559,33 @@ class NovelGameEngine {
 
     if (targetSrc === '') {
       this.state.bgmFadeTimer = setInterval(() => {
-        this.el.bgmPlayer.volume = Math.max(0, this.el.bgmPlayer.volume - 0.05);
-        if (this.el.bgmPlayer.volume === 0) { clearInterval(this.state.bgmFadeTimer); this.el.bgmPlayer.pause(); this.el.bgmPlayer.src = ''; }
+        if (this.el.bgmPlayer.volume <= 0.05) {
+          this.el.bgmPlayer.volume = 0;
+          clearInterval(this.state.bgmFadeTimer); 
+          this.el.bgmPlayer.pause(); 
+          this.el.bgmPlayer.src = ''; 
+        } else {
+          this.el.bgmPlayer.volume -= 0.05;
+        }
       }, 40);
       return;
     }
 
     const targetVol = settings.bgmVolume; 
     this.state.bgmFadeTimer = setInterval(() => {
-      if (!this.el.bgmPlayer.paused && this.el.bgmPlayer.volume > 0) {
-        this.el.bgmPlayer.volume = Math.max(0, this.el.bgmPlayer.volume - 0.05);
+      if (!this.el.bgmPlayer.paused && this.el.bgmPlayer.volume > 0.05) {
+        this.el.bgmPlayer.volume -= 0.05;
       } else {
         this.el.bgmPlayer.pause(); this.el.bgmPlayer.loop = isLoop; this.el.bgmPlayer.src = targetSrc; 
         this.el.bgmPlayer.currentTime = 0; this.el.bgmPlayer.volume = 0; this.el.bgmPlayer.play().catch(()=>{});
         clearInterval(this.state.bgmFadeTimer);
         this.state.bgmFadeTimer = setInterval(() => {
-          this.el.bgmPlayer.volume = Math.min(targetVol, this.el.bgmPlayer.volume + 0.05);
-          if (this.el.bgmPlayer.volume >= targetVol) clearInterval(this.state.bgmFadeTimer);
+          if (this.el.bgmPlayer.volume + 0.05 >= targetVol) {
+            this.el.bgmPlayer.volume = targetVol;
+            clearInterval(this.state.bgmFadeTimer);
+          } else {
+            this.el.bgmPlayer.volume += 0.05;
+          }
         }, 50);
       }
     }, 40);
@@ -1147,7 +1157,18 @@ class NovelGameEngine {
     if (this.particleSystem) this.particleSystem.stop();
     for (const pos in this.charMap) { Array.from(this.charMap[pos].classList).forEach(c => { if(c.startsWith('fx-')) this.charMap[pos].classList.remove(c); }); }
     this.state.prevScreen = 'title-screen';
-    this.fadeTransition(() => { this.showScreen('title-screen'); if (settings.titleBgm) this.fadeBGM(settings.titleBgm); }); 
+    
+    this.fadeTransition(() => { 
+      this.showScreen('title-screen'); 
+      if (settings.titleBgm) {
+        this.fadeBGM(settings.titleBgm); 
+      } else {
+        if (this.state.bgmFadeTimer) clearInterval(this.state.bgmFadeTimer);
+        this.el.bgmPlayer.pause();
+        this.el.bgmPlayer.src = '';
+        this.state.currentBgm = '';
+      }
+    }); 
   }
 
   saveSnapshot() {
