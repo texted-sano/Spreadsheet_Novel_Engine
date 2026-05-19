@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情報拡散シミュレーター</title>
+    <style>
+        /* =========================================
+           CSS Styles
+        ========================================= */
+        :root {
+            --app-bg: #e6ecf0;
+            --white: #ffffff;
+            --primary: #1da1f2;
+            --text-main: #14171a;
+            --text-sub: #657786;
+            --border: #e1e8ed;
+            --danger: #e0245e;
+            --success: #17bf63;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Mobile App Container */
+        #app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 750px;
+            background-color: var(--white);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            background-color: var(--app-bg);
+            overflow-y: auto;
+        }
+        .screen.active { display: flex; }
+
+        /* General UI Elements */
+        .header {
+            background-color: var(--white);
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background-color: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-danger { background-color: var(--danger); }
+
+        .card {
+            background-color: var(--white);
+            padding: 20px;
+            margin: 15px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Start / Compose Screen */
+        .scenario-desc { font-size: 15px; line-height: 1.6; color: var(--text-main); margin-bottom: 20px; }
+        
+        .compose-option {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: var(--white);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .compose-option:hover { background-color: #f5f8fa; }
+        .compose-option .author { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: var(--text-main); }
+        .compose-option .text { font-size: 15px; color: var(--text-main); line-height: 1.4; }
+        .compose-option .attachment { margin-top: 10px; background: #e1e8ed; padding: 10px; border-radius: 8px; font-size: 12px; color: var(--text-sub); text-align: center; border: 1px dashed #aab8c2;}
+
+        /* Simulation Screen (Timeline) */
+        #stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--text-main);
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        .stat-value { font-size: 16px; color: var(--primary); }
+        .stat-heat { color: var(--danger); }
+
+        #timeline {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 80px; /* Space for modal */
+            background-color: var(--white);
+            scroll-behavior: smooth;
+        }
+
+        .post {
+            display: flex;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin-right: 12px;
+            flex-shrink: 0;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px;
+        }
+        .post-content { flex: 1; }
+        .post-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .post-name { font-weight: bold; font-size: 14px; color: var(--text-main); }
+        .post-id { font-size: 13px; color: var(--text-sub); }
+        .post-text { font-size: 15px; color: var(--text-main); line-height: 1.4; word-wrap: break-word; }
+        
+        /* Highlight specific posts */
+        .post.is-mine { background-color: #f5f8fa; border-left: 4px solid var(--primary); }
+        .post.is-negative { background-color: #ffeef0; border-left: 4px solid var(--danger); }
+        .post.is-influencer { background-color: #fffce6; border-left: 4px solid #f1c40f; }
+
+        /* Intervention Modal */
+        #intervention-modal {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            background: var(--white);
+            border-top: 2px solid var(--danger);
+            padding: 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+        #intervention-modal.show { transform: translateY(0); }
+        .modal-title { color: var(--danger); font-size: 16px; font-weight: bold; margin-bottom: 10px; text-align: center;}
+        
+        .action-btn {
+            width: 100%; margin-bottom: 10px; padding: 12px;
+            border: 1px solid var(--border); border-radius: 8px;
+            background: #f8f9fa; font-size: 14px; font-weight: bold; cursor: pointer;
+        }
+        .action-btn:hover { background: #e2e6ea; }
+
+        /* Result Screen */
+        .result-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+        .result-clear { color: var(--success); }
+        .result-fail { color: var(--danger); }
+        .result-score { font-size: 32px; text-align: center; margin: 20px 0; font-weight: bold; }
+        .result-desc { font-size: 15px; line-height: 1.6; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;}
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- Screen 1: Start -->
+    <div id="screen-start" class="screen active">
+        <div class="header">情報拡散シミュレーター</div>
+        <div class="card">
+            <h2 style="font-size: 18px; margin-bottom: 10px;">あなたの投稿が、どう広がるか？</h2>
+            <p class="scenario-desc">
+                あなたはフォロワー約300人の一般的なSNSユーザーです。<br><br>
+                今日、カフェで店員さんに大声で怒鳴っている迷惑な客を見かけました。<br>
+                正義感から、あなたはその様子をスマホで隠し撮りしました。<br><br>
+                さて、この動画をどう投稿しますか？
+            </p>
+            <button id="btn-to-compose" class="btn" style="width: 100%;">投稿を作成する</button>
+        </div>
+    </div>
+
+    <!-- Screen 2: Compose -->
+    <div id="screen-compose" class="screen">
+        <div class="header">新規投稿を作成</div>
+        <div style="padding: 15px; font-size: 14px; color: var(--text-sub);">
+            投稿内容を選択してください：
+        </div>
+        
+        <div class="compose-option" data-choice="a">
+            <div class="author">あなた @my_account</div>
+            <div class="text">カフェで店員怒鳴ってるヤバい客いた。マジで迷惑。店員さん可哀想すぎる。 #拡散希望</div>
+            <div class="attachment">📸 【添付動画】客が怒鳴っている様子</div>
+        </div>
+
+        <div class="compose-option" data-choice="b">
+            <div class="author">あなた @my_account</div>
+            <div class="text">カフェでトラブルあって怖かった...。どんな理由があれ、大声出すのは良くないよね。みんな心に余裕持とう。</div>
+            <div class="attachment">📸 【添付動画】客が怒鳴っている様子</div>
+        </div>
+        
+        <div class="compose-option" data-choice="c">
+            <div class="author">あなた @my_account</div>
+            <div class="text">今日カフェで怒鳴ってる人がいて怖かった😢 店員さん無事だといいな...（動画は撮ったけど載せるのはやめとこ）</div>
+        </div>
+    </div>
+
+    <!-- Screen 3: Simulation -->
+    <div id="screen-sim" class="screen">
+        <div class="header">タイムライン</div>
+        <div id="stats-bar">
+            <div>👁️ インプ: <span id="val-imp" class="stat-value">0</span></div>
+            <div>🔄 RP: <span id="val-rp" class="stat-value">0</span></div>
+            <div>🔥 炎上: <span id="val-heat" class="stat-value stat-heat">0</span>%</div>
+        </div>
+        <div id="timeline">
+            <!-- Posts will be injected here -->
+        </div>
+        
+        <!-- Intervention Modal -->
+        <div id="intervention-modal">
+            <div class="modal-title">⚠️ 通知が止まりません！どう対応しますか？</div>
+            <button class="action-btn" data-action="apologize">🗑️ 投稿を削除し、「軽率でした」と謝罪する</button>
+            <button class="action-btn" data-action="argue">💢 「私は悪くない、悪いのは客だ」と反論する</button>
+            <button class="action-btn" data-action="ignore">🔕 通知をミュートして完全に放置する</button>
+        </div>
+    </div>
+
+    <!-- Screen 4: Result -->
+    <div id="screen-result" class="screen">
+        <div class="header">シミュレーション終了</div>
+        <div class="card" style="margin-top: 30px;">
+            <div id="result-title" class="result-title"></div>
+            <div class="result-score">SCORE: <span id="result-score-val"></span></div>
+            <div id="result-desc" class="result-desc"></div>
+            
+            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5;">
+                【解説】<br>
+                SNSでは前後の文脈が切り取られ、全く意図しない形で情報が拡散（暴走）することがあります。一度拡散した情報は完全には消せません。発信する前の冷静な判断が重要です。
+            </div>
+            
+            <button id="btn-end" class="btn" style="width: 100%;">結果を送信して終了</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =========================================
+   Configuration (設定)
+========================================= */
+const USER_SETTINGS = {
+    TICK_INTERVAL_MS: 1500,     // タイムラインが進む間隔(ミリ秒)
+    CLEAR_SCORE_THRESHOLD: 60,  // クリアと判定されるスコア
+    MAX_HEAT: 100               // 炎上度の最大値
+};
+
+/* =========================================
+   Scenario Data (シナリオデータ)
+========================================= */
+// タイムラインに流れる反応のシナリオキュー
+// どの選択肢を選んでも、途中で「文脈の切り抜き」による炎上危機が発生する。
+const TIMELINE_SCENARIOS = {
+    // 動画あり(煽り/同情) パターン：徐々に切り抜かれて炎上する
+    video_route: [
+        { type: 'normal', name: '一般ユーザーA', id: '@user_a', text: 'えぇ…これは酷い。店員さん可哀想😢', icon: '👤', impAdd: 1200, rpAdd: 50, heatAdd: 2 },
+        { type: 'normal', name: '共感する人', id: '@sympathy123', text: 'こういう客本当に無理。晒されて当然だと思います！拡散します！', icon: '👩', impAdd: 5500, rpAdd: 200, heatAdd: 5 },
+        { type: 'normal', name: 'まとめ系ボット', id: '@buzz_bot', text: '【話題】カフェで店員に激怒するヤバい客が現れる…（動画あり）', icon: '🤖', impAdd: 25000, rpAdd: 1500, heatAdd: 10 },
+        { type: 'influencer', name: '物申す系インフルエンサー', id: '@influencer_x', text: 'これ、動画の直前の部分が切り取られてるね。DMでタレコミあったけど、そもそも店員が客のPCにコーヒーこぼしたのが原因らしいよ。', icon: '😎', impAdd: 150000, rpAdd: 8000, heatAdd: 30 },
+        { type: 'negative', name: '特定班', id: '@detective_net', text: '前後の文脈も知らずに、勝手に動画撮って客を悪者にして晒し上げる投稿者ヤバすぎだろ。', icon: '🕵️', impAdd: 200000, rpAdd: 12000, heatAdd: 40 },
+        { type: 'negative', name: '怒れる群衆', id: '@angry_mob', text: '名誉毀損で訴えられればいいのに。投稿者の過去ツイート掘りますね。', icon: '😡', impAdd: 350000, rpAdd: 25000, heatAdd: 60 },
+        { type: 'intervention' } // ここで対応を求める
+    ],
+    // 動画なしパターン：炎上はしないが、場所の特定から飛び火する
+    text_route: [
+        { type: 'normal', name: 'フォロワー', id: '@friend_01', text: '大丈夫！？災難だったね💦', icon: '🧑', impAdd: 150, rpAdd: 0, heatAdd: 0 },
+        { type: 'normal', name: '一般ユーザー', id: '@random_guy', text: 'どこのカフェですか？最近変な人多いですよね。', icon: '👤', impAdd: 800, rpAdd: 5, heatAdd: 1 },
+        { type: 'normal', name: '地元民', id: '@local_resident', text: 'これ〇〇駅前のカフェの話かも。あそこの店員、接客態度悪いから客が怒るのも分かるわ。', icon: '🏠', impAdd: 3000, rpAdd: 40, heatAdd: 5 },
+        { type: 'influencer', name: 'クレームアカウント', id: '@claimer_acc', text: '〇〇駅前のカフェ、別の接客トラブルでも燃えてるな。この投稿もその証拠だ。どんどん拡散しよう。', icon: '🔥', impAdd: 45000, rpAdd: 2000, heatAdd: 20 },
+        { type: 'negative', name: '困惑するフォロワー', id: '@friend_02', text: 'なんかあなたの投稿が原因で、無関係なお店まで叩かれ始めてない…？', icon: '😨', impAdd: 60000, rpAdd: 3000, heatAdd: 30 },
+        { type: 'intervention' } // ここで対応を求める
+    ]
+};
+
+// 対応アクションの結果データ
+const ACTION_RESULTS = {
+    apologize: {
+        title: "ボヤで鎮火（クリア）",
+        score: 80,
+        isClear: true,
+        desc: "あなたはすぐに投稿を削除し、「状況を完全に把握せず、軽率な発信をしてしまいました」と謝罪しました。一部にスクショは残りましたが、誠実な対応により大炎上は免れました。"
+    },
+    argue: {
+        title: "大炎上・特定（ゲームオーバー）",
+        score: 10,
+        isClear: false,
+        desc: "反論したことでネット民を刺激し「火に油を注ぐ」結果に。過去の投稿からあなたの学校や職場が特定され、まとめサイトに「盗撮逆ギレユーザー」として永遠に掲載されることになりました。"
+    },
+    ignore: {
+        title: "デジタルタトゥー化（ゲームオーバー）",
+        score: 30,
+        isClear: false,
+        desc: "放置した結果、炎上は数日間続き、最終的にネットニュースで取り上げられました。あなたは何も言わなかったため、事実とは異なる憶測だけがネットの海を漂い続けることになりました。"
+    }
+};
+
+/* =========================================
+   Game Logic Class
+========================================= */
+class InfoSpreadSimulator {
+    constructor() {
+        this.score = 0;
+        this.isClear = false;
+        this.timer = null;
+        this.queue = [];
+        
+        // Stats
+        this.stats = { imp: 0, rp: 0, heat: 0 };
+        this.targetStats = { imp: 0, rp: 0, heat: 0 }; // アニメーション用目標値
+        
+        // DOM Elements
+        this.dom = {
+            screens: document.querySelectorAll('.screen'),
+            btnCompose: document.getElementById('btn-to-compose'),
+            composeOptions: document.querySelectorAll('.compose-option'),
+            btnEnd: document.getElementById('btn-end'),
+            // Stats
+            valImp: document.getElementById('val-imp'),
+            valRp: document.getElementById('val-rp'),
+            valHeat: document.getElementById('val-heat'),
+            // Timeline
+            timeline: document.getElementById('timeline'),
+            modal: document.getElementById('intervention-modal'),
+            actionBtns: document.querySelectorAll('.action-btn'),
+            // Result
+            resTitle: document.getElementById('result-title'),
+            resScore: document.getElementById('result-score-val'),
+            resDesc: document.getElementById('result-desc')
+        };
+
+        // Bindings
+        this.tick = this.tick.bind(this);
+        this.handleOptionSelect = this.handleOptionSelect.bind(this);
+        this.handleActionSelect = this.handleActionSelect.bind(this);
+        this.endGame = this.finishAndSend.bind(this);
+    }
+
+    init() {
+        this.dom.btnCompose.addEventListener('click', () => this.showScreen('screen-compose'));
+        this.dom.btnEnd.addEventListener('click', this.endGame);
+        
+        this.dom.composeOptions.forEach(opt => {
+            opt.addEventListener('click', this.handleOptionSelect);
+        });
+
+        this.dom.actionBtns.forEach(btn => {
+            btn.addEventListener('click', this.handleActionSelect);
+        });
+    }
+
+    showScreen(screenId) {
+        this.dom.screens.forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toLocaleString();
+    }
+
+    updateStatsDisplay() {
+        // 簡単なアニメーションで数値を目標値に近づける
+        ['imp', 'rp', 'heat'].forEach(key => {
+            if (this.stats[key] < this.targetStats[key]) {
+                let diff = this.targetStats[key] - this.stats[key];
+                this.stats[key] += Math.ceil(diff * 0.3); // 30%ずつ近づく
+                if(this.stats[key] > this.targetStats[key]) this.stats[key] = this.targetStats[key];
+            }
+        });
+
+        this.dom.valImp.textContent = this.formatNumber(this.stats.imp);
+        this.dom.valRp.textContent = this.formatNumber(this.stats.rp);
+        
+        let displayHeat = Math.min(this.stats.heat, USER_SETTINGS.MAX_HEAT);
+        this.dom.valHeat.textContent = displayHeat;
+        
+        // 炎上度によって色を変える
+        if (displayHeat > 50) this.dom.valHeat.style.color = 'var(--danger)';
+        else if (displayHeat > 20) this.dom.valHeat.style.color = '#f39c12';
+        else this.dom.valHeat.style.color = 'var(--text-main)';
+
+        // 目標値に達していなければ少し早く再帰描画（擬似的なパラパラ演出）
+        if (this.stats.imp < this.targetStats.imp) {
+            requestAnimationFrame(() => this.updateStatsDisplay());
+        }
+    }
+
+    addStats(imp, rp, heat) {
+        this.targetStats.imp += imp;
+        this.targetStats.rp += rp;
+        this.targetStats.heat += heat;
+        this.updateStatsDisplay();
+    }
+
+    handleOptionSelect(e) {
+        const choice = e.currentTarget.getAttribute('data-choice');
+        const myText = e.currentTarget.querySelector('.text').textContent;
+        const hasAttachment = e.currentTarget.querySelector('.attachment') !== null;
+
+        // 自分の投稿をタイムラインに追加
+        this.renderPost({
+            type: 'mine', name: 'あなた', id: '@my_account', icon: '👤', text: myText, hasAttachment: hasAttachment
+        });
+
+        // シナリオキューのセットアップ
+        if (choice === 'c') {
+            this.queue = [...TIMELINE_SCENARIOS.text_route];
+            this.addStats(50, 0, 0); // 初期値
+        } else {
+            this.queue = [...TIMELINE_SCENARIOS.video_route];
+            // 煽り度が高い(A)場合は初期拡散を早める設定などにする事も可能だが、今回は共通
+            this.addStats(500, 10, 0);
+        }
+
+        this.showScreen('screen-sim');
+        
+        // シミュレーション開始
+        setTimeout(() => {
+            this.timer = setInterval(this.tick, USER_SETTINGS.TICK_INTERVAL_MS);
+        }, 1000);
+    }
+
+    tick() {
+        if (this.queue.length === 0) {
+            clearInterval(this.timer);
+            return;
+        }
+
+        const nextEvent = this.queue.shift();
+
+        if (nextEvent.type === 'intervention') {
+            clearInterval(this.timer);
+            this.showInterventionModal();
+            return;
+        }
+
+        // 数値の加算
+        this.addStats(nextEvent.impAdd, nextEvent.rpAdd, nextEvent.heatAdd);
+        
+        // 投稿の描画
+        this.renderPost(nextEvent);
+    }
+
+    renderPost(data) {
+        const el = document.createElement('div');
+        el.className = 'post';
+        
+        if (data.type === 'mine') el.classList.add('is-mine');
+        if (data.type === 'negative') el.classList.add('is-negative');
+        if (data.type === 'influencer') el.classList.add('is-influencer');
+
+        let attachmentHTML = '';
+        if (data.hasAttachment) {
+            attachmentHTML = `<div style="margin-top:8px; padding:8px; background:#e1e8ed; border-radius:8px; font-size:12px; color:#657786;">📸 【添付動画】</div>`;
+        }
+
+        el.innerHTML = `
+            <div class="avatar">${data.icon || '👤'}</div>
+            <div class="post-content">
+                <div class="post-header">
+                    <span class="post-name">${data.name}</span>
+                    <span class="post-id">${data.id}</span>
+                </div>
+                <div class="post-text">${data.text}</div>
+                ${attachmentHTML}
+            </div>
+        `;
+        
+        this.dom.timeline.appendChild(el);
+        
+        // 自動スクロール
+        this.dom.timeline.scrollTop = this.dom.timeline.scrollHeight;
+    }
+
+    showInterventionModal() {
+        // 画面を少し揺らして警告
+        this.dom.timeline.style.transform = "translateX(5px)";
+        setTimeout(() => this.dom.timeline.style.transform = "translateX(-5px)", 100);
+        setTimeout(() => this.dom.timeline.style.transform = "translateX(5px)", 200);
+        setTimeout(() => this.dom.timeline.style.transform = "translateX(0)", 300);
+
+        this.dom.modal.classList.add('show');
+    }
+
+    handleActionSelect(e) {
+        const actionId = e.target.getAttribute('data-action');
+        this.dom.modal.classList.remove('show');
+        
+        const resultData = ACTION_RESULTS[actionId];
+        
+        // 結果の反映
+        this.score = resultData.score;
+        this.isClear = resultData.isClear;
+
+        // リザルト画面の構築
+        this.dom.resTitle.textContent = resultData.title;
+        this.dom.resTitle.className = "result-title " + (this.isClear ? "result-clear" : "result-fail");
+        this.dom.resScore.textContent = this.score;
+        this.dom.resDesc.textContent = resultData.desc;
+
+        // 少しディレイを入れてからリザルト画面へ
+        setTimeout(() => {
+            this.showScreen('screen-result');
+        }, 1000);
+    }
+
+    finishAndSend() {
+        const finalScore = this.score;
+        const finalClear = this.isClear;
+
+        this.destroy();
+
+        window.parent.postMessage({
+            type: 'MINIGAME_END',
+            flags: {
+                minigame_score: finalScore,
+                minigame_clear: finalClear
+            }
+        }, '*');
+    }
+
+    destroy() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+
+        // イベントリスナーの解除 (cloneNodeで安全に剥がす手法)
+        const oldContainer = document.getElementById('app-container');
+        const newContainer = oldContainer.cloneNode(true);
+        oldContainer.parentNode.replaceChild(newContainer, oldContainer);
+    }
+}
+
+/* =========================================
+   Initialization
+========================================= */
+document.addEventListener('DOMContentLoaded', () => {
+    const game = new InfoSpreadSimulator();
+    game.init();
+});
+</script>
+
+</body>
+</html>

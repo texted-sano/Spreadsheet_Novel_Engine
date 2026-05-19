@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スパムメール撃退シミュレーター</title>
+  <style>
+    /* =========================================================
+       CSS リセット & 基本設定
+    ========================================================= */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #dbe4f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ゲームコンテナ（メーラー風） */
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      max-height: 600px;
+      background-color: #f3f6f9;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #c0cadd;
+    }
+
+    /* =========================================================
+       ヘッダー（メーラーのツールバー風）
+    ========================================================= */
+    .header {
+      background-color: #2c3e50;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 2;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-logo span { font-size: 1.2rem; }
+    .status-area {
+      display: flex;
+      gap: 20px;
+    }
+    .life-icons { color: #e74c3c; font-size: 1.1rem; }
+
+    /* =========================================================
+       メインエリア（メール表示部）
+    ========================================================= */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* メールのヘッダー情報 */
+    .mail-header-info {
+      background-color: #fff;
+      padding: 15px 20px;
+      border-bottom: 1px solid #e0e6ed;
+    }
+    .mail-subject {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    .mail-sender {
+      font-size: 0.95rem;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sender-icon {
+      width: 32px;
+      height: 32px;
+      background-color: #bdc3c7;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-weight: bold;
+    }
+    .sender-address {
+      color: #3498db;
+      font-family: monospace;
+      background: #f0f4f8;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* メール本文 */
+    .mail-body {
+      flex: 1;
+      background-color: #fff;
+      padding: 20px;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #333;
+      overflow-y: auto;
+      white-space: pre-wrap; /* 改行を反映 */
+      font-family: "Meiryo", sans-serif;
+    }
+    
+    /* リンクっぽく見せる装飾 */
+    .fake-link {
+      color: #0000EE;
+      text-decoration: underline;
+      cursor: not-allowed;
+    }
+    /* 添付ファイルっぽく見せる装飾 */
+    .fake-attachment {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 15px;
+      border: 1px solid #ccc;
+      background-color: #fafafa;
+      border-radius: 4px;
+      color: #555;
+      font-weight: bold;
+    }
+
+    /* =========================================================
+       アクションエリア（行動選択）
+    ========================================================= */
+    .action-area {
+      background-color: #ecf0f1;
+      padding: 15px 20px;
+      border-top: 1px solid #bdc3c7;
+    }
+    .action-title {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #7f8c8d;
+      margin-bottom: 10px;
+    }
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .btn-action {
+      background-color: #fff;
+      color: #2c3e50;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 0 #bdc3c7;
+      text-align: center;
+    }
+    .btn-action:hover {
+      background-color: #f7f9fa;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 0 #bdc3c7;
+    }
+    .btn-action:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    /* =========================================================
+       フィードバックモーダル
+    ========================================================= */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(44, 62, 80, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background: #fff;
+      width: 90%;
+      max-width: 500px;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .modal-overlay.show .modal-content {
+      transform: scale(1);
+    }
+    .modal-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+    }
+    .icon-correct { color: #2ecc71; }
+    .icon-wrong { color: #e74c3c; }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+    .modal-text {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 25px;
+      text-align: left;
+    }
+    .btn-next {
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      padding: 12px 30px;
+      font-size: 1.1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    .btn-next:hover { background-color: #2980b9; }
+
+    /* =========================================================
+       スタート・リザルト画面
+    ========================================================= */
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #2c3e50;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    .screen h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #34db98;
+    }
+    .screen p {
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      text-align: center;
+      line-height: 1.6;
+      max-width: 600px;
+    }
+    .btn-primary {
+      background-color: #34db98;
+      color: #2c3e50;
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: #2ecc71;
+      transform: scale(1.05);
+    }
+    .hidden { display: none !important; }
+
+    /* ダメージエフェクト */
+    @keyframes damage-flash {
+      0%, 100% { background-color: #2c3e50; }
+      50% { background-color: #c0392b; }
+    }
+    .damage-bg { animation: damage-flash 0.4s ease-out; }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- UIはJSで構築 -->
+  </div>
+
+<script>
+  /**
+   * =====================================================================
+   * 【設定項目】 USER_SETTINGS
+   * メールのシナリオ（ケース）やスコア設定を一元管理します。
+   * =====================================================================
+   */
+  const USER_SETTINGS = {
+    MAX_LIFE: 3,             // 失敗できる回数
+    SCORE_PER_CORRECT: 100,  // 正解（適切な行動）時のスコア
+    SCORE_PER_LIFE: 50,      // クリア時、残っているライフ1つにつき加算されるボーナス
+
+    // 受信するメールのケース（出題順は固定、またはシャッフル可能）
+    CASES: [
+      {
+        subject: "【至急】アカウント一時停止のお知らせ",
+        senderName: "Amozan カスタマーサポート",
+        senderAddress: "info@amozan-security-update.com", // ドメインが偽物
+        body: "お客様のアカウントに対して、第三者からの不正なログイン試行が検出されました。\n安全のため、アカウントを一時的に停止しております。\n\n24時間以内に以下のリンクから本人確認を完了しない場合、アカウントは永久に削除されます。\n\n<span class='fake-link'>http://amozan-security-update.com/login/</span>\n\nご協力をお願いいたします。",
+        options: [
+          {
+            text: "URLをクリックしてログインする",
+            isCorrect: false,
+            feedback: "【危険・フィッシング詐欺】\nURLをクリックしてはいけません！差出人のアドレス（amozan-〜.com）が正規のものではありません。「24時間以内」「永久に削除」など、焦らせて冷静な判断を奪うのは詐欺の典型的な手口です。"
+          },
+          {
+            text: "メールを無視（削除）する",
+            isCorrect: true,
+            feedback: "【適切な対応】\n不審なメールは無視して削除するのが正解です。もし本当にアカウントが心配な場合は、メールのURLからではなく、普段使っている公式アプリやブックマークから公式サイトにアクセスして状況を確認しましょう。"
+          },
+          {
+            text: "差出人に返信して確認する",
+            isCorrect: false,
+            feedback: "【危険・情報漏洩】\n返信してはいけません。返信することで、あなたのメールアドレスが「実際に使われているアドレス」だと詐欺業者に教えてしまい、さらに多くの迷惑メールが届くようになります。"
+          }
+        ]
+      },
+      {
+        subject: "【重要】請求書送付の件（株式会社〇〇）",
+        senderName: "山田 太郎",
+        senderAddress: "yamada.taro@random-freemail.co.jp",
+        body: "お世話になっております。\n株式会社〇〇の山田です。\n\n先月分の請求書を添付ファイルにてお送りいたします。\n内容をご確認いただき、期日までにお振り込みをお願い申し上げます。\n\nよろしくお願いいたします。\n\n<div class='fake-attachment'>📎 請求書_202310.zip (452KB)</div>",
+        options: [
+          {
+            text: "添付ファイルをダウンロードして開く",
+            isCorrect: false,
+            feedback: "【危険・マルウェア感染】\n心当たりのない相手からの添付ファイルは絶対に開いてはいけません。中身は請求書ではなく、ウイルス（Emotetやランサムウェアなど）である可能性が非常に高いです。"
+          },
+          {
+            text: "迷惑メールとして報告・削除する",
+            isCorrect: true,
+            feedback: "【適切な対応】\n心当たりのない請求書メールは、マルウェア（ウイルス）を感染させるための攻撃メールである可能性が高いです。添付ファイルには絶対に触れず、削除しましょう。業務用のPCであれば、社内の情報システム部門に報告するのも良い対応です。"
+          }
+        ]
+      },
+      {
+        subject: "システム管理者より：パスワード更新のお願い",
+        senderName: "IT・システム管理部",
+        senderAddress: "admin-update@your-school-domain.net",
+        body: "全生徒・職員へのお知らせ\n\nセキュリティシステム更新のため、現在使用しているパスワードの再登録が必要です。\n以下のフォームにアクセスし、現在の【ID】と【パスワード】を入力して更新を完了させてください。\n\n<span class='fake-link'>https://forms.google.com/xyz...</span>\n\n※本日中に完了しない場合、ネットワークへの接続ができなくなります。",
+        options: [
+          {
+            text: "指示通りにフォームにパスワードを入力する",
+            isCorrect: false,
+            feedback: "【危険・パスワード窃取】\n管理者がメールやGoogleフォーム等で直接パスワードの入力を求めることは絶対にありません。これは組織内を狙った「標的型攻撃」やなりすましの可能性が高いです。"
+          },
+          {
+            text: "管理部門に別の手段で直接確認する",
+            isCorrect: true,
+            feedback: "【完璧な対応！】\n少しでも不審に感じたら、メールに書かれている連絡先やURLを使わず、電話や直接訪問など「別の手段」で本物の管理部門に事実確認を行うのが最も安全で確実なセキュリティ対策です。"
+          },
+          {
+            text: "友達にメールを転送して聞いてみる",
+            isCorrect: false,
+            feedback: "【不適切・被害拡大】\nもしこのメールにウイルスが仕込まれていた場合、転送することで友達にも被害を広げてしまう可能性があります。判断に迷った時は、専門部署（先生や情シス）に相談しましょう。"
+          }
+        ]
+      }
+    ]
+  };
+
+  /**
+   * =====================================================================
+   * 【ゲームロジック】 PhishingSimulationGame Class
+   * =====================================================================
+   */
+  class PhishingSimulationGame {
+    constructor(containerId, settings) {
+      this.container = document.getElementById(containerId);
+      this.settings = settings;
+
+      // 状態変数
+      this.life = settings.MAX_LIFE;
+      this.score = 0;
+      this.currentCaseIndex = 0;
+      this.cases = [];
+      this.isGameOver = false;
+      this.isClear = false;
+
+      // イベントバインド
+      this.boundHandleClick = this.handleClick.bind(this);
+    }
+
+    init() {
+      this.renderBaseHTML();
+      
+      this.ui = {
+        header: this.container.querySelector('.header'),
+        lifeText: this.container.querySelector('#ui-life'),
+        scoreText: this.container.querySelector('#ui-score'),
+        mailSubject: this.container.querySelector('#ui-mail-subject'),
+        senderIcon: this.container.querySelector('#ui-sender-icon'),
+        senderName: this.container.querySelector('#ui-sender-name'),
+        senderAddress: this.container.querySelector('#ui-sender-address'),
+        mailBody: this.container.querySelector('#ui-mail-body'),
+        actionGrid: this.container.querySelector('#ui-action-grid'),
+        modalOverlay: this.container.querySelector('#ui-modal-overlay'),
+        modalIcon: this.container.querySelector('#ui-modal-icon'),
+        modalTitle: this.container.querySelector('#ui-modal-title'),
+        modalText: this.container.querySelector('#ui-modal-text'),
+        startScreen: this.container.querySelector('#screen-start'),
+        resultScreen: this.container.querySelector('#screen-result'),
+        resultTitle: this.container.querySelector('#result-title'),
+        resultMessage: this.container.querySelector('#result-message')
+      };
+
+      this.container.addEventListener('click', this.boundHandleClick);
+    }
+
+    renderBaseHTML() {
+      this.container.innerHTML = `
+        <!-- ヘッダー -->
+        <div class="header">
+          <div class="header-logo">
+            <span>🛡️</span> SecMail
+          </div>
+          <div class="status-area">
+            <div>SCORE: <span id="ui-score">0</span></div>
+            <div>LIFE: <span id="ui-life" class="life-icons"></span></div>
+          </div>
+        </div>
+
+        <!-- メール表示エリア -->
+        <div class="main-area">
+          <div class="mail-header-info">
+            <div id="ui-mail-subject" class="mail-subject"></div>
+            <div class="mail-sender">
+              <div id="ui-sender-icon" class="sender-icon"></div>
+              <span id="ui-sender-name" style="font-weight:bold;"></span>
+              <span id="ui-sender-address" class="sender-address"></span>
+            </div>
+          </div>
+          <div id="ui-mail-body" class="mail-body"></div>
+        </div>
+
+        <!-- 行動選択エリア -->
+        <div class="action-area">
+          <div class="action-title">このメールに対する行動を選択してください：</div>
+          <div id="ui-action-grid" class="action-grid"></div>
+        </div>
+
+        <!-- フィードバックモーダル -->
+        <div id="ui-modal-overlay" class="modal-overlay">
+          <div class="modal-content">
+            <div id="ui-modal-icon" class="modal-icon"></div>
+            <div id="ui-modal-title" class="modal-title"></div>
+            <div id="ui-modal-text" class="modal-text"></div>
+            <button class="btn-next" data-action="next-case">確認して次へ</button>
+          </div>
+        </div>
+
+        <!-- スタート画面 -->
+        <div id="screen-start" class="screen">
+          <h1>スパムメール<br>撃退シミュレーター</h1>
+          <p>あなたの受信トレイに届いた「怪しいメール」。<br>件名、差出人、本文をよく確認し、被害を防ぐための正しい行動を選択しましょう。<br>危険な行動をとるとライフが減ります。</p>
+          <button class="btn-primary" data-action="start">受信トレイを開く</button>
+        </div>
+
+        <!-- リザルト画面 -->
+        <div id="screen-result" class="screen hidden">
+          <h1 id="result-title"></h1>
+          <p id="result-message"></p>
+          <button class="btn-primary" data-action="finish">システムから退出</button>
+        </div>
+      `;
+    }
+
+    handleClick(e) {
+      const action = e.target.getAttribute('data-action');
+      
+      if (action === 'start') {
+        this.startGame();
+      } else if (action === 'finish') {
+        this.finishGame();
+      } else if (action === 'next-case') {
+        this.goToNextCase();
+      } else if (action === 'choose-option') {
+        const index = parseInt(e.target.getAttribute('data-index'), 10);
+        this.handleOption(index);
+      }
+    }
+
+    startGame() {
+      this.ui.startScreen.classList.add('hidden');
+      // 出題配列をコピー（必要ならここでシャッフル）
+      this.cases = [...this.settings.CASES];
+      this.currentCaseIndex = 0;
+      this.score = 0;
+      this.life = this.settings.MAX_LIFE;
+      
+      this.updateStatusUI();
+      this.loadCase();
+    }
+
+    updateStatusUI() {
+      this.ui.scoreText.textContent = this.score;
+      // ライフのハート表示
+      this.ui.lifeText.textContent = '❤️'.repeat(this.life) + '🖤'.repeat(this.settings.MAX_LIFE - this.life);
+    }
+
+    loadCase() {
+      const currentData = this.cases[this.currentCaseIndex];
+
+      // メールのセット
+      this.ui.mailSubject.textContent = currentData.subject;
+      this.ui.senderName.textContent = currentData.senderName;
+      this.ui.senderAddress.textContent = `<${currentData.senderAddress}>`;
+      this.ui.senderIcon.textContent = currentData.senderName.charAt(0);
+      
+      // 本文（HTMLタグを許可して擬似リンク等を表示）
+      this.ui.mailBody.innerHTML = currentData.body;
+
+      // 選択肢ボタンの生成
+      this.ui.actionGrid.innerHTML = '';
+      currentData.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-action';
+        btn.textContent = opt.text;
+        btn.setAttribute('data-action', 'choose-option');
+        btn.setAttribute('data-index', index);
+        this.ui.actionGrid.appendChild(btn);
+      });
+    }
+
+    handleOption(optionIndex) {
+      const currentData = this.cases[this.currentCaseIndex];
+      const selectedOption = currentData.options[optionIndex];
+
+      if (selectedOption.isCorrect) {
+        // 正解
+        this.score += this.settings.SCORE_PER_CORRECT;
+        this.showModal(true, "安全を確保しました", selectedOption.feedback);
+      } else {
+        // 不正解（ダメージ）
+        this.life--;
+        this.playDamageAnim();
+        this.showModal(false, "セキュリティインシデント発生！", selectedOption.feedback);
+      }
+
+      this.updateStatusUI();
+    }
+
+    showModal(isCorrect, title, text) {
+      this.ui.modalIcon.className = `modal-icon ${isCorrect ? 'icon-correct' : 'icon-wrong'}`;
+      this.ui.modalIcon.textContent = isCorrect ? '🛡️' : '⚠️';
+      
+      this.ui.modalTitle.textContent = title;
+      this.ui.modalTitle.style.color = isCorrect ? '#2ecc71' : '#e74c3c';
+      
+      this.ui.modalText.innerHTML = text.replace(/\n/g, '<br>');
+      
+      this.ui.modalOverlay.classList.add('show');
+    }
+
+    playDamageAnim() {
+      this.ui.header.classList.add('damage-bg');
+      setTimeout(() => {
+        this.ui.header.classList.remove('damage-bg');
+      }, 400);
+    }
+
+    goToNextCase() {
+      this.ui.modalOverlay.classList.remove('show');
+
+      if (this.life <= 0) {
+        // ライフゼロでゲームオーバー
+        this.endGame(false, "PCがウイルスに感染し、システムが乗っ取られてしまいました。日頃から不審なメールには注意しましょう。");
+        return;
+      }
+
+      this.currentCaseIndex++;
+
+      if (this.currentCaseIndex >= this.cases.length) {
+        // 全ケース終了でクリア
+        this.endGame(true, "すべての不審なメールを適切に処理し、システムを守り抜きました！");
+      } else {
+        // 次のケースへ
+        this.loadCase();
+      }
+    }
+
+    endGame(isClear, reasonMsg) {
+      this.isClear = isClear;
+      this.isGameOver = true;
+
+      // ライフボーナスの加算
+      if (isClear) {
+        this.score += (this.life * this.settings.SCORE_PER_LIFE);
+      }
+
+      setTimeout(() => {
+        this.ui.resultTitle.textContent = isClear ? "SYSTEM SECURED" : "SYSTEM COMPROMISED";
+        this.ui.resultTitle.style.color = isClear ? "#34db98" : "#e74c3c";
+        
+        this.ui.resultMessage.innerHTML = `
+          ${reasonMsg}<br><br>
+          最終評価スコア: ${this.score}
+        `;
+        
+        this.ui.resultScreen.classList.remove('hidden');
+      }, 300);
+    }
+
+    /**
+     * 【必須要件】 親ウィンドウへ結果を送信し、インスタンスを破棄する
+     */
+    finishGame() {
+      window.parent.postMessage({
+        type: 'MINIGAME_END',
+        flags: {
+          minigame_score: this.score,
+          minigame_clear: this.isClear
+        }
+      }, '*');
+
+      this.destroy();
+    }
+
+    destroy() {
+      // イベントリスナーの完全解除とDOMクリア
+      this.container.removeEventListener('click', this.boundHandleClick);
+      this.container.innerHTML = '';
+      console.log("PhishingSimulationGame instance destroyed safely.");
+    }
+  }
+
+  /**
+   * =====================================================================
+   * DOM読み込み完了後にゲームを初期化
+   * =====================================================================
+   */
+  document.addEventListener('DOMContentLoaded', () => {
+    const game = new PhishingSimulationGame('game-container', USER_SETTINGS);
+    game.init();
+  });
+</script>
+</body>
+</html>

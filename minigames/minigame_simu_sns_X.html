@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNSトラブル回避シミュレーター</title>
+  <style>
+    /* =========================================================
+       CSS リセット & 基本設定 (ダークモードSNS風)
+    ========================================================= */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #10171e; /* ダーク背景 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      color: #ffffff;
+    }
+
+    /* アプリ風コンテナ（スマホサイズを意識） */
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      height: 100%;
+      max-height: 800px;
+      background-color: #15202b;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      border-right: 1px solid #38444d;
+      border-left: 1px solid #38444d;
+      overflow: hidden;
+    }
+
+    /* =========================================================
+       トップナビゲーション
+    ========================================================= */
+    .top-nav {
+      background-color: rgba(21, 32, 43, 0.95);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #38444d;
+      font-size: 1.2rem;
+      font-weight: bold;
+      z-index: 5;
+    }
+    .status-group {
+      display: flex;
+      gap: 15px;
+      font-size: 1rem;
+    }
+    .life-icons { color: #e0245e; } /* SNSライクなピンクレッド */
+    .score-text { color: #1da1f2; } /* SNSライクなブルー */
+
+    /* =========================================================
+       メインタイムラインエリア
+    ========================================================= */
+    .main-feed {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background-color: #15202b;
+      padding-bottom: 20px;
+    }
+
+    /* 状況説明ラベル */
+    .situation-label {
+      background-color: #1da1f2;
+      color: #fff;
+      padding: 8px 15px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin: 15px 15px 0 15px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* 投稿カード */
+    .post-card {
+      background-color: #15202b;
+      border: 1px solid #38444d;
+      margin: 15px;
+      border-radius: 12px;
+      padding: 15px;
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      margin-right: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+      color: #fff;
+      font-weight: bold;
+    }
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .user-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .user-id {
+      color: #8899a6;
+      font-size: 0.9rem;
+    }
+
+    .post-body {
+      font-size: 1.1rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      margin-bottom: 15px;
+      word-break: break-word;
+    }
+    .post-link { color: #1da1f2; }
+    .post-tag { color: #1da1f2; }
+
+    /* 画像プレースホルダー 
+       差し替える場合は background-color を消して background-image を指定 
+    */
+    .post-image-placeholder {
+      width: 100%;
+      height: 180px;
+      background-color: #2b3b4a;
+      border-radius: 12px;
+      border: 1px solid #38444d;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #8899a6;
+      font-size: 0.9rem;
+    }
+    .hidden-image { display: none !important; }
+
+    /* =========================================================
+       アクションボタンエリア
+    ========================================================= */
+    .action-prompt {
+      color: #8899a6;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .action-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-action {
+      background-color: transparent;
+      color: #fff;
+      border: 1px solid #1da1f2;
+      border-radius: 9999px; /* ピル型ボタン */
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .btn-action:hover {
+      background-color: rgba(29, 161, 242, 0.1);
+    }
+    .btn-action:active {
+      transform: scale(0.98);
+    }
+
+    /* =========================================================
+       フィードバックモーダル
+    ========================================================= */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background: #192734;
+      width: 90%;
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      border: 1px solid #38444d;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .modal-overlay.show .modal-content {
+      transform: translateY(0);
+    }
+    .modal-icon {
+      font-size: 4rem;
+      margin-bottom: 10px;
+    }
+    .icon-correct { color: #17bf63; }
+    .icon-wrong { color: #e0245e; }
+    
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    .modal-text {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #fff;
+      margin-bottom: 25px;
+      text-align: left;
+    }
+    .btn-next {
+      background-color: #1da1f2;
+      color: #fff;
+      border: none;
+      padding: 12px 0;
+      width: 100%;
+      font-size: 1.1rem;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    .btn-next:hover { background-color: #1a91da; }
+
+    /* =========================================================
+       各種画面（スタート、リザルト）
+    ========================================================= */
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #15202b;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      padding: 20px;
+    }
+    .screen h1 {
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #fff;
+    }
+    .screen p {
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      text-align: center;
+      line-height: 1.6;
+      color: #8899a6;
+    }
+    .btn-primary {
+      background-color: #1da1f2;
+      color: #fff;
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: #1a91da;
+      transform: scale(1.05);
+    }
+    .hidden { display: none !important; }
+
+    /* ダメージエフェクト */
+    @keyframes damage-flash {
+      0%, 100% { background-color: #15202b; }
+      50% { background-color: #6a1329; }
+    }
+    .damage-bg { animation: damage-flash 0.4s ease-out; }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- UIはJSで構築 -->
+  </div>
+
+<script>
+  /**
+   * =====================================================================
+   * 【設定項目】 USER_SETTINGS
+   * SNS上のトラブル事例（フェイクニュース、著作権、個人情報、詐欺など）
+   * =====================================================================
+   */
+  const USER_SETTINGS = {
+    MAX_LIFE: 3,             // 失敗できる回数
+    SCORE_PER_CORRECT: 100,  // 正解時のスコア
+    SCORE_PER_LIFE: 50,      // クリア時の残機ボーナス
+
+    // SNSで遭遇するケースデータ
+    CASES: [
+      {
+        situation: "タイムラインで見かけた投稿",
+        authorName: "ニュース速報まとめ",
+        authorId: "@news_matome_x",
+        avatarColor: "#e67e22",
+        avatarInitial: "速",
+        content: "【緊急・拡散希望】\n〇〇市で動物園からライオンが逃げ出しました！\n近くの人は絶対に外に出ないでください！！\n<span class='post-tag'>#拡散希望</span> <span class='post-tag'>#注意喚起</span>",
+        hasImage: true,
+        imageLabel: "[ライオンが街を歩いているように見える画像]",
+        options: [
+          {
+            text: "みんなに知らせるためにリポスト（拡散）する",
+            isCorrect: false,
+            feedback: "【不適切・デマの拡散】\n災害時や緊急時には、不安をあおる嘘の情報（フェイクニュース）が出回ることがあります。真偽不明の情報を拡散すると、あなた自身がデマの加害者になってしまいます。"
+          },
+          {
+            text: "自治体や公式の発表を確認する / 無視する",
+            isCorrect: true,
+            feedback: "【適切な対応】\nまずは落ち着いて、警察や自治体、信頼できる報道機関の公式アカウントで事実を確認しましょう。嘘だとわかった場合は反応せず無視するのが正解です。"
+          }
+        ]
+      },
+      {
+        situation: "自分の投稿（下書き）",
+        authorName: "あなた",
+        authorId: "@player_account",
+        avatarColor: "#1da1f2",
+        avatarInitial: "You",
+        content: "今日から家族旅行で1週間ハワイに行ってきます！✈️🌺\n留守番頼んだよ〜！\n<span class='post-tag'>#家族旅行</span> <span class='post-tag'>#ハワイ</span>",
+        hasImage: true,
+        imageLabel: "[家の前で撮った家族の写真]",
+        options: [
+          {
+            text: "このまま投稿する",
+            isCorrect: false,
+            feedback: "【危険・個人情報の漏洩】\n「1週間家を空ける」ことと「自宅の外観（場所の特定）」をセットでSNSに公開すると、空き巣の標的にされる危険性が非常に高いです。"
+          },
+          {
+            text: "旅行から帰宅した後に事後報告として投稿する",
+            isCorrect: true,
+            feedback: "【適切な対応】\n旅行の写真は、帰宅した後に「行ってきました」と事後報告するのが安全です。SNSは不特定多数の人が見ていることを常に意識しましょう。"
+          }
+        ]
+      },
+      {
+        situation: "あなた宛てのダイレクトメッセージ（DM）",
+        authorName: "🎁キャンペーン公式アカウント",
+        authorId: "@camp_official_123",
+        avatarColor: "#9b59b6",
+        avatarInitial: "キ",
+        content: "ご当選おめでとうございます！🎉\n最新のスマートフォンが当たりました！\n\n以下のURLから、送料のみクレジットカードでお支払いいただき、受け取り手続きを完了させてください。\n<span class='post-link'>https://fake-campaign-prize.com/login/</span>",
+        hasImage: false,
+        imageLabel: "",
+        options: [
+          {
+            text: "リンクを開いてクレジットカード情報を入力する",
+            isCorrect: false,
+            feedback: "【危険・フィッシング詐欺】\n身に覚えのない当選DMは、個人情報やクレジットカード番号を盗み取るためのフィッシング詐欺です。絶対にURLを開いてはいけません。"
+          },
+          {
+            text: "無視してアカウントをブロック・通報する",
+            isCorrect: true,
+            feedback: "【適切な対応】\nこのような詐欺DMには一切返信せず、アカウントをブロックし、SNSの運営に通報するのが最も安全な対処法です。"
+          }
+        ]
+      },
+      {
+        situation: "タイムラインで見かけた投稿",
+        authorName: "アニメ大好き",
+        authorId: "@anime_love_99",
+        avatarColor: "#e74c3c",
+        avatarInitial: "ア",
+        content: "今週の最新話、ここから全部無料で見れるよ！神回すぎたｗｗ\nみんなも早く見た方がいい！\n<span class='post-link'>http://illegal-movie-site.net/watch/</span>",
+        hasImage: false,
+        imageLabel: "",
+        options: [
+          {
+            text: "リンクをクリックして動画を見る",
+            isCorrect: false,
+            feedback: "【不適切・著作権侵害とウイルス感染】\n公式配信ではない違法アップロード動画を視聴することは著作権侵害にあたるだけでなく、サイトにアクセスしただけでウイルスに感染するリスクもあります。"
+          },
+          {
+            text: "違法サイトへの誘導として通報する / 無視する",
+            isCorrect: true,
+            feedback: "【適切な対応】\n違法アップロードへのリンクは無視しましょう。プラットフォームの機能を使って「スパム」や「著作権侵害」として通報するのも良い対応です。"
+          }
+        ]
+      },
+      {
+        situation: "タイムラインで見かけた投稿",
+        authorName: "匿名ユーザー",
+        authorId: "@nanashi_00",
+        avatarColor: "#7f8c8d",
+        avatarInitial: "匿",
+        content: "〇〇（有名人）ってマジで性格悪いらしいな。\nあんな奴テレビから消えればいいのに。\nみんなで炎上させようぜｗ",
+        hasImage: false,
+        imageLabel: "",
+        options: [
+          {
+            text: "便乗して悪口を書き込む・リポストする",
+            isCorrect: false,
+            feedback: "【不適切・誹謗中傷への加担】\n他人の悪口に便乗して書き込んだり拡散したりすると、あなた自身も名誉毀損や侮辱罪に問われる可能性があります。匿名でも特定される時代です。"
+          },
+          {
+            text: "反応せずにスクロールする（無視する）",
+            isCorrect: true,
+            feedback: "【適切な対応】\nネガティブな発言や誹謗中傷には関わらないのが一番です。スルーする力（スルースキル）を身につけることが、SNSを安全に楽しむコツです。"
+          }
+        ]
+      }
+    ]
+  };
+
+  /**
+   * =====================================================================
+   * 【ゲームロジック】 SnsLiteracyGame Class
+   * =====================================================================
+   */
+  class SnsLiteracyGame {
+    constructor(containerId, settings) {
+      this.container = document.getElementById(containerId);
+      this.settings = settings;
+
+      // 状態変数
+      this.life = settings.MAX_LIFE;
+      this.score = 0;
+      this.currentCaseIndex = 0;
+      this.cases = [];
+      this.isGameOver = false;
+      this.isClear = false;
+
+      // イベントバインド
+      this.boundHandleClick = this.handleClick.bind(this);
+    }
+
+    init() {
+      this.renderBaseHTML();
+      
+      this.ui = {
+        mainFeed: this.container.querySelector('.main-feed'),
+        lifeText: this.container.querySelector('#ui-life'),
+        scoreText: this.container.querySelector('#ui-score'),
+        situationLabel: this.container.querySelector('#ui-situation'),
+        avatar: this.container.querySelector('#ui-avatar'),
+        authorName: this.container.querySelector('#ui-author-name'),
+        authorId: this.container.querySelector('#ui-author-id'),
+        postContent: this.container.querySelector('#ui-post-content'),
+        postImage: this.container.querySelector('#ui-post-image'),
+        actionGrid: this.container.querySelector('#ui-action-grid'),
+        modalOverlay: this.container.querySelector('#ui-modal-overlay'),
+        modalIcon: this.container.querySelector('#ui-modal-icon'),
+        modalTitle: this.container.querySelector('#ui-modal-title'),
+        modalText: this.container.querySelector('#ui-modal-text'),
+        startScreen: this.container.querySelector('#screen-start'),
+        resultScreen: this.container.querySelector('#screen-result'),
+        resultTitle: this.container.querySelector('#result-title'),
+        resultMessage: this.container.querySelector('#result-message')
+      };
+
+      this.container.addEventListener('click', this.boundHandleClick);
+    }
+
+    renderBaseHTML() {
+      this.container.innerHTML = `
+        <!-- トップナビゲーション -->
+        <div class="top-nav">
+          <div>SocialNet</div>
+          <div class="status-group">
+            <div class="score-text">Score: <span id="ui-score">0</span></div>
+            <div id="ui-life" class="life-icons"></div>
+          </div>
+        </div>
+
+        <!-- タイムラインエリア -->
+        <div class="main-feed">
+          <div id="ui-situation" class="situation-label"></div>
+          
+          <div class="post-card">
+            <div class="post-header">
+              <div id="ui-avatar" class="avatar"></div>
+              <div class="user-info">
+                <span id="ui-author-name" class="user-name"></span>
+                <span id="ui-author-id" class="user-id"></span>
+              </div>
+            </div>
+            
+            <div id="ui-post-content" class="post-body"></div>
+            
+            <div id="ui-post-image" class="post-image-placeholder"></div>
+
+            <div class="action-prompt">あなたの行動を選択：</div>
+            <div id="ui-action-grid" class="action-grid"></div>
+          </div>
+        </div>
+
+        <!-- フィードバックモーダル -->
+        <div id="ui-modal-overlay" class="modal-overlay">
+          <div class="modal-content">
+            <div id="ui-modal-icon" class="modal-icon"></div>
+            <div id="ui-modal-title" class="modal-title"></div>
+            <div id="ui-modal-text" class="modal-text"></div>
+            <button class="btn-next" data-action="next-case">次へ進む</button>
+          </div>
+        </div>
+
+        <!-- スタート画面 -->
+        <div id="screen-start" class="screen">
+          <h1>SNSトラブル回避<br>シミュレーター</h1>
+          <p>タイムラインやDMに流れてくる情報に対し、情報リテラシーに基づいた正しい行動を選択してください。<br>間違った行動をとるとライフ（❤️）が減ります。</p>
+          <button class="btn-primary" data-action="start">アプリを開く</button>
+        </div>
+
+        <!-- リザルト画面 -->
+        <div id="screen-result" class="screen hidden">
+          <h1 id="result-title"></h1>
+          <p id="result-message"></p>
+          <button class="btn-primary" data-action="finish">アプリを閉じる</button>
+        </div>
+      `;
+    }
+
+    handleClick(e) {
+      const action = e.target.getAttribute('data-action');
+      
+      if (action === 'start') {
+        this.startGame();
+      } else if (action === 'finish') {
+        this.finishGame();
+      } else if (action === 'next-case') {
+        this.goToNextCase();
+      } else if (action === 'choose-option') {
+        const index = parseInt(e.target.getAttribute('data-index'), 10);
+        this.handleOption(index);
+      }
+    }
+
+    startGame() {
+      this.ui.startScreen.classList.add('hidden');
+      this.cases = [...this.settings.CASES];
+      this.currentCaseIndex = 0;
+      this.score = 0;
+      this.life = this.settings.MAX_LIFE;
+      
+      this.updateStatusUI();
+      this.loadCase();
+    }
+
+    updateStatusUI() {
+      this.ui.scoreText.textContent = this.score;
+      this.ui.lifeText.textContent = '❤️'.repeat(this.life) + '🖤'.repeat(this.settings.MAX_LIFE - this.life);
+    }
+
+    loadCase() {
+      const currentData = this.cases[this.currentCaseIndex];
+
+      this.ui.situationLabel.textContent = currentData.situation;
+      
+      this.ui.avatar.style.backgroundColor = currentData.avatarColor;
+      this.ui.avatar.textContent = currentData.avatarInitial;
+      
+      this.ui.authorName.textContent = currentData.authorName;
+      this.ui.authorId.textContent = currentData.authorId;
+      
+      // HTMLタグを許可して表示（ハッシュタグやリンクの色付け用）
+      this.ui.postContent.innerHTML = currentData.content.replace(/\n/g, '<br>');
+
+      // 画像プレースホルダーの表示切り替え
+      if (currentData.hasImage) {
+        this.ui.postImage.classList.remove('hidden-image');
+        this.ui.postImage.textContent = currentData.imageLabel;
+      } else {
+        this.ui.postImage.classList.add('hidden-image');
+      }
+
+      // 選択肢の生成
+      this.ui.actionGrid.innerHTML = '';
+      currentData.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-action';
+        btn.textContent = opt.text;
+        btn.setAttribute('data-action', 'choose-option');
+        btn.setAttribute('data-index', index);
+        this.ui.actionGrid.appendChild(btn);
+      });
+      
+      // スクロールを上に戻す
+      this.ui.mainFeed.scrollTop = 0;
+    }
+
+    handleOption(optionIndex) {
+      const currentData = this.cases[this.currentCaseIndex];
+      const selectedOption = currentData.options[optionIndex];
+
+      if (selectedOption.isCorrect) {
+        // 正解
+        this.score += this.settings.SCORE_PER_CORRECT;
+        this.showModal(true, "素晴らしい判断です！", selectedOption.feedback);
+      } else {
+        // 不正解
+        this.life--;
+        this.playDamageAnim();
+        this.showModal(false, "トラブル発生！", selectedOption.feedback);
+      }
+
+      this.updateStatusUI();
+    }
+
+    showModal(isCorrect, title, text) {
+      this.ui.modalIcon.className = `modal-icon ${isCorrect ? 'icon-correct' : 'icon-wrong'}`;
+      this.ui.modalIcon.textContent = isCorrect ? '✅' : '❌';
+      
+      this.ui.modalTitle.textContent = title;
+      this.ui.modalTitle.style.color = isCorrect ? '#17bf63' : '#e0245e';
+      
+      this.ui.modalText.innerHTML = text.replace(/\n/g, '<br>');
+      
+      this.ui.modalOverlay.classList.add('show');
+    }
+
+    playDamageAnim() {
+      this.ui.mainFeed.classList.add('damage-bg');
+      setTimeout(() => {
+        this.ui.mainFeed.classList.remove('damage-bg');
+      }, 400);
+    }
+
+    goToNextCase() {
+      this.ui.modalOverlay.classList.remove('show');
+
+      if (this.life <= 0) {
+        this.endGame(false, "トラブルに巻き込まれ、SNSアカウントが炎上（または乗っ取り）してしまいました。情報の発信・受信には十分注意しましょう。");
+        return;
+      }
+
+      this.currentCaseIndex++;
+
+      if (this.currentCaseIndex >= this.cases.length) {
+        this.endGame(true, "すべてのシチュエーションで適切な判断ができました！これからも安全にSNSを利用しましょう。");
+      } else {
+        this.loadCase();
+      }
+    }
+
+    endGame(isClear, reasonMsg) {
+      this.isClear = isClear;
+      this.isGameOver = true;
+
+      // ライフボーナス
+      if (isClear) {
+        this.score += (this.life * this.settings.SCORE_PER_LIFE);
+      }
+
+      setTimeout(() => {
+        this.ui.resultTitle.textContent = isClear ? "ALL CLEAR!" : "ACCOUNT SUSPENDED";
+        this.ui.resultTitle.style.color = isClear ? "#17bf63" : "#e0245e";
+        
+        this.ui.resultMessage.innerHTML = `
+          ${reasonMsg}<br><br>
+          最終リテラシースコア: ${this.score}
+        `;
+        
+        this.ui.resultScreen.classList.remove('hidden');
+      }, 300);
+    }
+
+    /**
+     * 【必須要件】 親ウィンドウへ結果を送信し、インスタンスを破棄する
+     */
+    finishGame() {
+      window.parent.postMessage({
+        type: 'MINIGAME_END',
+        flags: {
+          minigame_score: this.score,
+          minigame_clear: this.isClear
+        }
+      }, '*');
+
+      this.destroy();
+    }
+
+    destroy() {
+      this.container.removeEventListener('click', this.boundHandleClick);
+      this.container.innerHTML = '';
+      console.log("SnsLiteracyGame instance destroyed safely.");
+    }
+  }
+
+  /**
+   * =====================================================================
+   * DOM読み込み完了後にゲームを初期化
+   * =====================================================================
+   */
+  document.addEventListener('DOMContentLoaded', () => {
+    const game = new SnsLiteracyGame('game-container', USER_SETTINGS);
+    game.init();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「利用規約を読め！」ゲーム</title>
+    <style>
+        /* =========================================
+           CSS Styles
+        ========================================= */
+        :root {
+            --bg-outside: #1a1a1a;
+            --phone-bg: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%233498db"/><circle cx="50%" cy="20%" r="40%" fill="%232980b9" opacity="0.5"/><circle cx="80%" cy="80%" r="50%" fill="%238e44ad" opacity="0.3"/></svg>');
+            --dialog-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #000000;
+            --text-sub: #3c3c43;
+            --btn-text: #007aff;
+            --btn-danger: #ff3b30;
+            --border: rgba(60, 60, 67, 0.29);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-outside);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Phone Container */
+        #phone-container {
+            width: 100%;
+            max-width: 375px;
+            height: 100%;
+            max-height: 812px;
+            background: var(--phone-bg) no-repeat center center;
+            background-size: cover;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 8px solid #333;
+        }
+
+        /* Screens Overlay */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 10;
+        }
+        .screen.active { display: flex; }
+
+        /* Start & Result Panel (Not native dialog) */
+        .panel {
+            background-color: var(--dialog-bg);
+            border-radius: 14px;
+            padding: 24px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .panel h1 { font-size: 22px; margin-bottom: 10px; color: var(--text-main); }
+        .panel p { font-size: 15px; color: var(--text-sub); line-height: 1.5; margin-bottom: 20px; text-align: left;}
+        
+        .solid-btn {
+            background-color: var(--btn-text);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .solid-btn:active { transform: scale(0.96); }
+
+        /* Native-like Dialog Box */
+        .dialog-box {
+            background-color: var(--dialog-bg);
+            width: 270px;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .dialog-header { padding: 20px 16px; }
+        .app-icon { font-size: 48px; margin-bottom: 10px; }
+        .dialog-title { font-size: 17px; font-weight: 600; color: var(--text-main); margin-bottom: 6px; line-height: 1.3;}
+        .dialog-desc { 
+            font-size: 13px; color: var(--text-sub); line-height: 1.4; 
+            max-height: 120px; overflow-y: auto; padding: 5px;
+            background: rgba(0,0,0,0.03); border-radius: 6px;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        .dialog-actions {
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border);
+        }
+
+        .dialog-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border);
+            padding: 12px;
+            font-size: 17px;
+            color: var(--btn-text);
+            cursor: pointer;
+            width: 100%;
+        }
+        .dialog-btn:last-child { border-bottom: none; border-radius: 0 0 14px 14px;}
+        .dialog-btn:active { background-color: rgba(0,0,0,0.1); }
+        .dialog-btn.allow { font-weight: normal; }
+        .dialog-btn.later { font-weight: normal; }
+        .dialog-btn.deny { font-weight: 600; color: var(--btn-danger); }
+
+        /* Feedback Toast (修正箇所: 確実に隠す) */
+        #feedback-toast {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            width: 90%;
+            background-color: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            
+            /* 画面外下部へ移動、透明化、クリック無効化 */
+            transform: translate(-50%, 150%);
+            opacity: 0;
+            pointer-events: none;
+            
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #feedback-toast.show {
+            /* 定位置へ戻し、表示状態にする */
+            transform: translate(-50%, 0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .toast-result { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .toast-correct { color: #34c759; }
+        .toast-wrong { color: #ff3b30; }
+        .toast-partial { color: #ff9500; }
+        .toast-desc { font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 12px; }
+        .toast-next-btn {
+            background: #333; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
+        .toast-next-btn:active { background: #555; transform: scale(0.98); }
+
+        /* Top Status Bar */
+        #status-bar {
+            position: absolute;
+            top: 10px; right: 20px;
+            color: white; font-weight: bold; font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+<div id="phone-container">
+    <div id="status-bar">SCORE: <span id="ui-score">0</span></div>
+
+    <!-- Screen 1: Start -->
+    <div id="screen-start" class="screen active">
+        <div class="panel">
+            <h1>利用規約を読め！</h1>
+            <p>
+                新しいスマホを買って、色々なアプリをインストールしました。<br><br>
+                アプリを起動すると、様々な「権限の許可」や「利用規約の同意」を求められます。<br><br>
+                内容をしっかり読み、<b>「許可」「後で確認」「拒否」</b>の中から、プライバシーを守るための正しい選択をしてください。
+            </p>
+            <button id="btn-start" class="solid-btn">初期設定を開始</button>
+        </div>
+    </div>
+
+    <!-- Screen 2: Game (Dialog) -->
+    <div id="screen-game" class="screen">
+        <div class="dialog-box">
+            <div class="dialog-header">
+                <div id="app-icon" class="app-icon">❓</div>
+                <div id="dialog-title" class="dialog-title">タイトル</div>
+                <div id="dialog-desc" class="dialog-desc">説明文</div>
+            </div>
+            <div class="dialog-actions">
+                <button class="dialog-btn allow" data-ans="allow">許可</button>
+                <button class="dialog-btn later" data-ans="later">後で確認 (1度だけ)</button>
+                <button class="dialog-btn deny" data-ans="deny">拒否 (同意しない)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Toast -->
+    <div id="feedback-toast">
+        <div id="toast-result" class="toast-result">結果</div>
+        <div id="toast-desc" class="toast-desc">解説</div>
+        <button id="btn-next" class="toast-next-btn">次へ</button>
+    </div>
+
+    <!-- Screen 3: Result -->
+    <div id="screen-result" class="screen">
+        <div class="panel">
+            <h1 id="res-title"></h1>
+            <div style="font-size: 40px; font-weight: bold; margin: 10px 0; color: var(--btn-text);">
+                <span id="res-score"></span> pt
+            </div>
+            <p id="res-desc" style="text-align: center;"></p>
+            <p style="font-size: 12px; color: gray; text-align: center;">
+                ※アプリの権限は、後からスマホの設定画面で変更可能です。迷ったらまずは「拒否」か「後で確認」を選びましょう。
+            </p>
+            <button id="btn-end" class="solid-btn">結果を送信して終了</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =========================================
+   Configuration (設定)
+========================================= */
+const USER_SETTINGS = {
+    CLEAR_SCORE: 35,    // クリアと判定されるスコア (満点50)
+    MAX_SCORE: 50
+};
+
+/* =========================================
+   Game Data (問題シナリオ)
+========================================= */
+const SCENARIOS = [
+    {
+        appName: "スーパー電卓 Pro",
+        icon: "🧮",
+        title: "「スーパー電卓 Pro」が連絡先へのアクセスを求めています",
+        desc: "あなたの連絡先データを使用して、より良い計算体験とフレンド機能を提供します。",
+        scores: { allow: 0, later: 5, deny: 10 },
+        best: "deny",
+        explanation: "電卓にあなたの友達の電話番号は全く不要です！裏で個人情報を収集し、業者に売却する悪徳アプリの典型的な手口です。"
+    },
+    {
+        appName: "ナビゲーションMAP",
+        icon: "🗺️",
+        title: "「ナビゲーションMAP」が位置情報へのアクセスを求めています",
+        desc: "現在地からのルート案内を行うために位置情報を使用します。",
+        scores: { allow: 10, later: 5, deny: 0 },
+        best: "allow",
+        explanation: "地図・ナビアプリが現在地を取得するのは正当な理由です。機能を正しく使うためには許可が必要です。"
+    },
+    {
+        appName: "暇つぶしパズル 無料版",
+        icon: "🧩",
+        title: "利用規約の同意",
+        desc: "第1条：本規約は...\n（中略）\n第42条：ユーザーは本アプリを利用することにより、自身のスマートフォンに保存されている全ての写真の著作権を運営会社に無償で譲渡することに同意するものとします。\n第43条：...",
+        scores: { allow: 0, later: 5, deny: 10 },
+        best: "deny",
+        explanation: "「利用規約なんて誰も読まないだろう」という心理を突いた罠です！怪しいアプリを使う時は、不自然な条項がないか警戒する癖をつけましょう。"
+    },
+    {
+        appName: "美肌カメラ・ライト",
+        icon: "📸",
+        title: "「美肌カメラ・ライト」がマイクと通話履歴へのアクセスを求めています",
+        desc: "最高の写真撮影体験のために必要です。",
+        scores: { allow: 0, later: 5, deny: 10 },
+        best: "deny",
+        explanation: "写真を撮るだけなのに「通話履歴」や「マイク」は不要です。複数の権限をまとめて要求してくる場合、不要なものが混ざっていないか注意が必要です。"
+    },
+    {
+        appName: "毎日のお天気",
+        icon: "☀️",
+        title: "「毎日のお天気」が常に位置情報を取得することを求めています",
+        desc: "アプリを開いていなくても、常に現在地の天気をお知らせします。",
+        scores: { allow: 0, later: 10, deny: 5 },
+        best: "later",
+        explanation: "天気は知りたいですが、24時間「常に」追跡される必要はありません。まずは「後で確認(アプリ使用中のみ許可)」を選ぶのがプライバシー保護の観点で正解です。"
+    }
+];
+
+/* =========================================
+   Game Logic Class
+========================================= */
+class PermissionDefenseGame {
+    constructor() {
+        this.score = 0;
+        this.currentIdx = 0;
+        this.isClear = false;
+
+        // DOM キャッシュ
+        this.dom = {
+            screens: document.querySelectorAll('.screen'),
+            uiScore: document.getElementById('ui-score'),
+            btnStart: document.getElementById('btn-start'),
+            btnEnd: document.getElementById('btn-end'),
+            // Dialog
+            appIcon: document.getElementById('app-icon'),
+            dTitle: document.getElementById('dialog-title'),
+            dDesc: document.getElementById('dialog-desc'),
+            ansBtns: document.querySelectorAll('.dialog-btn'),
+            // Toast
+            toast: document.getElementById('feedback-toast'),
+            tResult: document.getElementById('toast-result'),
+            tDesc: document.getElementById('toast-desc'),
+            btnNext: document.getElementById('btn-next'),
+            // Result
+            rTitle: document.getElementById('res-title'),
+            rScore: document.getElementById('res-score'),
+            rDesc: document.getElementById('res-desc')
+        };
+
+        // Binds
+        this.handleStart = this.startGame.bind(this);
+        this.handleAnswer = this.processAnswer.bind(this);
+        this.handleNext = this.nextQuestion.bind(this);
+        this.handleEnd = this.finishAndSend.bind(this);
+    }
+
+    init() {
+        this.dom.btnStart.addEventListener('click', this.handleStart);
+        this.dom.btnEnd.addEventListener('click', this.handleEnd);
+        this.dom.btnNext.addEventListener('click', this.handleNext);
+        
+        this.dom.ansBtns.forEach(btn => {
+            btn.addEventListener('click', this.handleAnswer);
+        });
+    }
+
+    showScreen(screenId) {
+        this.dom.screens.forEach(s => s.classList.remove('active'));
+        if (screenId) document.getElementById(screenId).classList.add('active');
+    }
+
+    startGame() {
+        this.score = 0;
+        this.currentIdx = 0;
+        this.updateScoreUI();
+        this.renderQuestion();
+        this.showScreen('screen-game');
+    }
+
+    renderQuestion() {
+        const q = SCENARIOS[this.currentIdx];
+        
+        this.dom.appIcon.textContent = q.icon;
+        this.dom.dTitle.textContent = q.title;
+        this.dom.dDesc.textContent = q.desc;
+        
+        // アニメーションのリセット
+        const box = document.querySelector('.dialog-box');
+        box.style.animation = 'none';
+        box.offsetHeight; // reflow
+        box.style.animation = 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    }
+
+    processAnswer(e) {
+        // 連打防止のためボタンを無効化
+        this.dom.ansBtns.forEach(btn => btn.disabled = true);
+
+        const ans = e.target.getAttribute('data-ans');
+        const q = SCENARIOS[this.currentIdx];
+        const earned = q.scores[ans];
+        
+        this.score += earned;
+        this.updateScoreUI();
+
+        // 判定テキストの設定
+        if (earned === 10) {
+            this.dom.tResult.textContent = "⭕ 大正解！素晴らしい判断です。";
+            this.dom.tResult.className = "toast-result toast-correct";
+        } else if (earned > 0) {
+            this.dom.tResult.textContent = "△ まあまあ。より安全な選択肢がありました。";
+            this.dom.tResult.className = "toast-result toast-partial";
+        } else {
+            this.dom.tResult.textContent = "❌ 危険！情報が抜き取られます。";
+            this.dom.tResult.className = "toast-result toast-wrong";
+        }
+
+        this.dom.tDesc.textContent = q.explanation;
+        
+        // トーストを表示
+        this.dom.toast.classList.add('show');
+    }
+
+    nextQuestion() {
+        // トーストを非表示にする
+        this.dom.toast.classList.remove('show');
+        this.dom.ansBtns.forEach(btn => btn.disabled = false);
+
+        this.currentIdx++;
+        if (this.currentIdx >= SCENARIOS.length) {
+            // トーストが下がるアニメーションを待ってから終了画面へ
+            setTimeout(() => this.showResult(), 400);
+        } else {
+            // トーストが下がるのを少し待ってから次の問題を描画
+            setTimeout(() => this.renderQuestion(), 400);
+        }
+    }
+
+    updateScoreUI() {
+        this.dom.uiScore.textContent = this.score;
+    }
+
+    showResult() {
+        this.isClear = this.score >= USER_SETTINGS.CLEAR_SCORE;
+
+        this.dom.rScore.textContent = this.score;
+
+        if (this.isClear) {
+            this.dom.rTitle.textContent = "🎉 防衛成功！";
+            this.dom.rTitle.style.color = "#34c759";
+            this.dom.rDesc.textContent = "見事な情報リテラシーです！あなたは怪しい要求を見抜き、自分の個人情報をしっかり守り抜きました。";
+        } else {
+            this.dom.rTitle.textContent = "💦 情報漏洩の危機...";
+            this.dom.rTitle.style.color = "#ff3b30";
+            this.dom.rDesc.textContent = "いくつかの怪しいアプリに権限を与えてしまいました。便利さの裏に潜むリスクにもっと警戒しましょう。";
+        }
+
+        this.showScreen('screen-result');
+    }
+
+    finishAndSend() {
+        const finalScore = this.score;
+        const finalClear = this.isClear;
+
+        this.destroy();
+
+        window.parent.postMessage({
+            type: 'MINIGAME_END',
+            flags: {
+                minigame_score: finalScore,
+                minigame_clear: finalClear
+            }
+        }, '*');
+    }
+
+    destroy() {
+        // イベントリスナーの解除 (安全のためのクローン置換)
+        const oldContainer = document.getElementById('phone-container');
+        const newContainer = oldContainer.cloneNode(true);
+        oldContainer.parentNode.replaceChild(newContainer, oldContainer);
+        
+        const oldToast = document.getElementById('feedback-toast');
+        if (oldToast && oldToast.parentNode) {
+            const newToast = oldToast.cloneNode(true);
+            oldToast.parentNode.replaceChild(newToast, oldToast);
+        }
+    }
+}
+
+/* =========================================
+   Initialization
+========================================= */
+document.addEventListener('DOMContentLoaded', () => {
+    const game = new PermissionDefenseGame();
+    game.init();
+});
+</script>
+
+</body>
+</html>

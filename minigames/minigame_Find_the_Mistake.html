@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情報リテラシー・間違い探しゲーム</title>
+  <style>
+    /* =========================================================
+       CSS リセット & 基本設定
+    ========================================================= */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      background-color: #1e1e2f;
+      color: #eaeaea;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      max-height: 600px;
+      background-color: #282a36;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    /* =========================================================
+       ヘッダー（ステータス情報）
+    ========================================================= */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background-color: #1e1e2f;
+      border-bottom: 2px solid #44475a;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .text-time { color: #50fa7b; }
+    .text-score { color: #f1fa8c; }
+    .text-progress { color: #8be9fd; }
+    
+    /* タイムペナルティ時の赤文字エフェクト */
+    .time-penalty {
+      color: #ff5555 !important;
+      animation: flash-red 0.5s;
+    }
+
+    /* =========================================================
+       メインプレイエリア（お題と文章）
+    ========================================================= */
+    .play-area {
+      flex: 1;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    
+    .situation-box {
+      font-size: 1.1rem;
+      color: #bd93f9;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: rgba(189, 147, 249, 0.1);
+      border-left: 5px solid #bd93f9;
+      border-radius: 4px;
+      line-height: 1.4;
+    }
+
+    .phrase-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 1.3rem;
+      line-height: 2.2;
+      align-items: center;
+    }
+
+    .phrase-btn {
+      background: transparent;
+      border: 1px solid #6272a4;
+      color: #f8f8f2;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: inherit;
+      transition: all 0.2s;
+    }
+    .phrase-btn:hover {
+      background-color: #44475a;
+      border-color: #8be9fd;
+    }
+    .phrase-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* クリック時のフィードバック演出 */
+    .phrase-btn.wrong-click {
+      background-color: #ff5555 !important;
+      color: #fff !important;
+      border-color: #ff5555 !important;
+      animation: shake 0.3s;
+    }
+    .phrase-btn.correct-click {
+      background-color: #50fa7b !important;
+      color: #282a36 !important;
+      border-color: #50fa7b !important;
+      font-weight: bold;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+    @keyframes flash-red {
+      0%, 100% { color: #50fa7b; }
+      50% { color: #ff5555; text-shadow: 0 0 10px #ff5555; }
+    }
+
+    /* =========================================================
+       解説モーダル（学習効果の要）
+    ========================================================= */
+    .explanation-modal {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(40, 42, 54, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .explanation-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .exp-title {
+      font-size: 2rem;
+      color: #50fa7b;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .exp-text {
+      font-size: 1.2rem;
+      line-height: 1.6;
+      text-align: left;
+      margin-bottom: 30px;
+      max-width: 600px;
+    }
+
+    /* =========================================================
+       各種画面（スタート、リザルト）
+    ========================================================= */
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #282a36;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    .screen h1 { font-size: 2.5rem; margin-bottom: 20px; text-align: center; color: #ff79c6;}
+    .screen p { font-size: 1.2rem; margin-bottom: 30px; text-align: center; line-height: 1.6; color: #f8f8f2;}
+    
+    .action-btn {
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #282a36;
+      background-color: #8be9fd;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .action-btn:hover { background-color: #50fa7b; }
+    .action-btn:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- UIはJSで構築します -->
+  </div>
+
+<script>
+  /**
+   * =====================================================================
+   * 【設定項目】 USER_SETTINGS
+   * =====================================================================
+   */
+  const USER_SETTINGS = {
+    // 制限時間（秒）とペナルティ設定
+    TIME_LIMIT_SEC: 90,
+    PENALTY_SEC: 5,          // 不正解の箇所をクリックしたときに減る時間
+
+    // スコア設定
+    SCORE_PER_CORRECT: 100,  // 1問正解時の基本スコア
+    TIME_BONUS_SCORE: 10,    // クリア時、残り時間1秒につき加算されるスコア
+
+    // 問題データ（出題順は自動でシャッフルされます）
+    // situation: 状況説明・問題の指示
+    // phrases: 文章を分割した配列。isError: true のものが正解（間違い・危険な箇所）です。
+    // explanation: 正解時に表示される「なぜ違うか」の解説文
+    QUESTIONS: [
+      {
+        situation: "【SNSの利用】\nある人のSNSへの投稿です。この中で「危険な行動」をしている箇所はどこですか？",
+        phrases: [
+          { text: "今日から家族旅行で", isError: false },
+          { text: "ハワイに来ています！", isError: false },
+          { text: "とても海が綺麗で最高です。", isError: false },
+          { text: "1週間も家を空ける", isError: true },
+          { text: "から、帰るのが少し寂しいな〜。", isError: false }
+        ],
+        explanation: "「1週間家を空ける」とSNSで公開すると、留守であることが不特定多数に知られ、空き巣の標的になる危険性があります。旅行の写真は帰宅した後に「事後報告」として投稿するのが安全です。"
+      },
+      {
+        situation: "【パスワード管理】\n新しいWebサービスのパスワードを設定する時の考え方です。間違っている箇所はどこですか？",
+        phrases: [
+          { text: "パスワードは、", isError: false },
+          { text: "絶対に忘れないように、", isError: false },
+          { text: "自分の誕生日と名前を", isError: true },
+          { text: "組み合わせたものにして、", isError: false },
+          { text: "手帳にメモしておいた。", isError: false }
+        ],
+        explanation: "「名前」や「生年月日」「電話番号」は、SNSやプロフィールから他人に最も推測されやすい情報です。意味のない英数字や記号を組み合わせた、長く複雑なパスワードを設定しましょう。"
+      },
+      {
+        situation: "【フィッシング詐欺】\n届いたメールへの対応です。危険な判断をしている箇所はどこですか？",
+        phrases: [
+          { text: "よく使う通販サイトから", isError: false },
+          { text: "「アカウント停止のお知らせ」が届いた。", isError: false },
+          { text: "驚いて、", isError: false },
+          { text: "メール本文のURLをクリックし、", isError: true },
+          { text: "急いでIDとパスワードを入力した。", isError: false }
+        ],
+        explanation: "不安をあおる内容で偽サイトに誘導し、パスワードを盗み取る「フィッシング詐欺」の典型的な手口です。メール内のURLはクリックせず、いつも使っている公式アプリやブックマークから確認する習慣をつけましょう。"
+      },
+      {
+        situation: "【フリーWi-Fiの利用】\nカフェでのインターネット利用です。セキュリティ上、やってはいけない行動はどこですか？",
+        phrases: [
+          { text: "カフェに入り、", isError: false },
+          { text: "パスワードなしの無料Wi-Fiに", isError: false },
+          { text: "スマートフォンを接続した。", isError: false },
+          { text: "その通信回線を使って、", isError: false },
+          { text: "クレジットカード情報を入力して買い物をした。", isError: true }
+        ],
+        explanation: "パスワード不要（暗号化されていない）のフリーWi-Fiは、悪意のある人に通信内容をのぞき見られる危険があります。クレジットカード番号や個人情報の入力、重要なログインは避けましょう。"
+      },
+      {
+        situation: "【著作権とモラル】\nインターネット上の画像の扱いについてです。問題のある行動はどこですか？",
+        phrases: [
+          { text: "インターネットの検索で見つけた", isError: false },
+          { text: "可愛いキャラクターのイラストを", isError: false },
+          { text: "自分のスマートフォンに保存し、", isError: false },
+          { text: "自分のSNSのアイコンとして無断で使用した。", isError: true }
+        ],
+        explanation: "ネット上の画像やイラストにも「著作権」があります。個人的に保存して楽しむのは問題ありませんが、SNSのアイコンとして公開するなどの「無断使用」は著作権侵害になる可能性があります。許可を得るか、フリー素材を使いましょう。"
+      },
+      {
+        situation: "【フェイクニュース（偽情報）】\n災害時のSNS利用についてです。間違った情報の扱い方はどれですか？",
+        phrases: [
+          { text: "「〇〇の地域で有害物質が漏れている！」", isError: false },
+          { text: "というショッキングな投稿を見た。", isError: false },
+          { text: "みんなに知らせなきゃと思い、", isError: false },
+          { text: "事実を確認せずにすぐリツイート（拡散）した。", isError: true }
+        ],
+        explanation: "緊急時ほど、不安をあおる嘘の情報（デマ）が拡散しやすくなります。善意のつもりでも、確認せずに拡散すれば、あなた自身がデマの加害者になってしまいます。公的機関などの信頼できる情報を確認しましょう。"
+      }
+    ]
+  };
+
+  /**
+   * =====================================================================
+   * 【ゲームロジック】 SpotTheDifferenceGame Class
+   * =====================================================================
+   */
+  class SpotTheDifferenceGame {
+    constructor(containerId, settings) {
+      this.container = document.getElementById(containerId);
+      this.settings = settings;
+
+      // 状態変数
+      this.timerId = null;
+      this.score = 0;
+      this.time = settings.TIME_LIMIT_SEC;
+      
+      this.questionPool = [];
+      this.currentQuestionIndex = 0;
+      this.totalQuestions = settings.QUESTIONS.length;
+      
+      this.currentQuestion = null;
+      this.isClear = false;
+      this.isGameOver = false;
+      this.isWaitingNext = false;
+
+      // イベントリスナーのバインド
+      this.boundHandleClick = this.handleClick.bind(this);
+    }
+
+    init() {
+      this.renderBaseHTML();
+      
+      this.ui = {
+        timeText: this.container.querySelector('#ui-time'),
+        scoreText: this.container.querySelector('#ui-score'),
+        progressText: this.container.querySelector('#ui-progress'),
+        situationBox: this.container.querySelector('#ui-situation'),
+        phraseContainer: this.container.querySelector('#ui-phrase-container'),
+        expModal: this.container.querySelector('#ui-exp-modal'),
+        expText: this.container.querySelector('#ui-exp-text'),
+        startScreen: this.container.querySelector('#screen-start'),
+        resultScreen: this.container.querySelector('#screen-result'),
+        resultTitle: this.container.querySelector('#result-title'),
+        resultMessage: this.container.querySelector('#result-message'),
+      };
+
+      this.container.addEventListener('click', this.boundHandleClick);
+      this.updateStatusUI();
+    }
+
+    renderBaseHTML() {
+      this.container.innerHTML = `
+        <div class="header">
+          <div class="text-progress">問題: <span id="ui-progress">0/0</span></div>
+          <div class="text-score">SCORE: <span id="ui-score">0</span></div>
+          <div class="text-time">残り時間: <span id="ui-time">${this.time}</span>秒</div>
+        </div>
+        <div class="play-area">
+          <div id="ui-situation" class="situation-box"></div>
+          <div id="ui-phrase-container" class="phrase-container"></div>
+          
+          <div id="ui-exp-modal" class="explanation-modal">
+            <div class="exp-title">正解！</div>
+            <div id="ui-exp-text" class="exp-text"></div>
+            <button class="action-btn" data-action="next-question">次の問題へ</button>
+          </div>
+        </div>
+        <div id="screen-start" class="screen">
+          <h1>テキスト間違い探し<br>〜インシデント・ハンター〜</h1>
+          <p>表示された文章の中に潜む<br>「間違っている行動・危険な箇所」をクリックで見つけ出せ！<br>お手つき（ミス）をすると制限時間が減るぞ。</p>
+          <button class="action-btn" data-action="start">ミッション開始</button>
+        </div>
+        <div id="screen-result" class="screen hidden">
+          <h1 id="result-title"></h1>
+          <p id="result-message"></p>
+          <button class="action-btn" data-action="finish">完了して戻る</button>
+        </div>
+      `;
+    }
+
+    handleClick(e) {
+      const action = e.target.getAttribute('data-action');
+      
+      if (action === 'start') {
+        this.startGame();
+      } else if (action === 'finish') {
+        this.finishGame();
+      } else if (action === 'next-question') {
+        this.goToNextQuestion();
+      } else if (e.target.classList.contains('phrase-btn') && !this.isGameOver && !this.isClear && !this.isWaitingNext) {
+        const isError = e.target.getAttribute('data-is-error') === 'true';
+        this.handleAnswer(e.target, isError);
+      }
+    }
+
+    startGame() {
+      this.ui.startScreen.classList.add('hidden');
+      
+      // 問題のシャッフル
+      this.questionPool = this.shuffleArray([...this.settings.QUESTIONS]);
+      this.totalQuestions = this.questionPool.length;
+      this.currentQuestionIndex = 0;
+      
+      this.loadQuestion();
+      
+      // タイマー開始
+      this.timerId = setInterval(() => {
+        this.time--;
+        this.updateStatusUI();
+        if (this.time <= 0) {
+          this.endGame(false, "タイムアップ！調査失敗...");
+        }
+      }, 1000);
+    }
+
+    loadQuestion() {
+      this.isWaitingNext = false;
+      this.currentQuestion = this.questionPool[this.currentQuestionIndex];
+      
+      this.ui.situationBox.innerHTML = this.currentQuestion.situation.replace(/\n/g, '<br>');
+      this.ui.phraseContainer.innerHTML = '';
+      
+      this.currentQuestion.phrases.forEach(phrase => {
+        const btn = document.createElement('button');
+        btn.className = 'phrase-btn';
+        btn.textContent = phrase.text;
+        btn.setAttribute('data-is-error', phrase.isError);
+        this.ui.phraseContainer.appendChild(btn);
+      });
+
+      this.updateStatusUI();
+    }
+
+    handleAnswer(btnElement, isError) {
+      if (isError) {
+        // 正解
+        this.isWaitingNext = true;
+        this.score += this.settings.SCORE_PER_CORRECT;
+        btnElement.classList.add('correct-click');
+        
+        this.updateStatusUI();
+        this.showExplanation();
+      } else {
+        // 不正解
+        btnElement.classList.add('wrong-click');
+        
+        this.time -= this.settings.PENALTY_SEC;
+        if (this.time < 0) this.time = 0;
+        
+        this.ui.timeText.classList.add('time-penalty');
+        setTimeout(() => {
+          this.ui.timeText.classList.remove('time-penalty');
+          btnElement.classList.remove('wrong-click');
+        }, 500);
+
+        this.updateStatusUI();
+        
+        if (this.time <= 0) {
+          this.endGame(false, "タイムアップ！調査失敗...");
+        }
+      }
+    }
+
+    showExplanation() {
+      this.ui.expText.textContent = this.currentQuestion.explanation;
+      this.ui.expModal.classList.add('show');
+    }
+
+    goToNextQuestion() {
+      this.ui.expModal.classList.remove('show');
+      this.currentQuestionIndex++;
+
+      if (this.currentQuestionIndex >= this.totalQuestions) {
+        this.endGame(true, "すべての危険な行動を見つけ出した！");
+      } else {
+        this.loadQuestion();
+      }
+    }
+
+    updateStatusUI() {
+      this.ui.timeText.textContent = this.time;
+      this.ui.scoreText.textContent = this.score;
+      this.ui.progressText.textContent = `${Math.min(this.currentQuestionIndex + 1, this.totalQuestions)}/${this.totalQuestions}`;
+    }
+
+    shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    endGame(isClear, reasonMsg) {
+      this.isClear = isClear;
+      this.isGameOver = !isClear;
+      clearInterval(this.timerId);
+
+      if (isClear) {
+        this.score += this.time * this.settings.TIME_BONUS_SCORE;
+      }
+
+      this.ui.resultTitle.textContent = isClear ? "MISSION CLEAR!" : "MISSION FAILED";
+      this.ui.resultTitle.style.color = isClear ? "#50fa7b" : "#ff5555";
+      
+      this.ui.resultMessage.innerHTML = `
+        ${reasonMsg}<br><br>
+        最終スコア: ${this.score}
+      `;
+      
+      this.ui.resultScreen.classList.remove('hidden');
+    }
+
+    /**
+     * 【必須要件】 親ウィンドウへの結果返却とメモリ解放
+     */
+    finishGame() {
+      window.parent.postMessage({
+        type: 'MINIGAME_END',
+        flags: {
+          minigame_score: this.score,
+          minigame_clear: this.isClear
+        }
+      }, '*');
+
+      this.destroy();
+    }
+
+    destroy() {
+      clearInterval(this.timerId);
+      this.container.removeEventListener('click', this.boundHandleClick);
+      this.container.innerHTML = '';
+      console.log("SpotTheDifferenceGame instance destroyed safely.");
+    }
+  }
+
+  /**
+   * DOM読み込み完了後にゲームを初期化
+   */
+  document.addEventListener('DOMContentLoaded', () => {
+    const game = new SpotTheDifferenceGame('game-container', USER_SETTINGS);
+    game.init();
+  });
+</script>
+</body>
+</html>

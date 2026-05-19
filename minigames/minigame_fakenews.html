@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フェイクニュース判定ゲーム</title>
+    <style>
+        /* =========================================
+           CSS Styles
+        ========================================= */
+        :root {
+            --primary-color: #2c3e50;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #65676b;
+            --border-color: #ced0d4;
+            --btn-reliable: #2ecc71;
+            --btn-insufficient: #f39c12;
+            --btn-suspicious: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            max-height: 800px;
+            background-color: var(--bg-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Header (Status bar) */
+        #header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        p {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* News Card */
+        #news-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        .news-source { font-weight: bold; color: var(--text-main); }
+        
+        .news-url {
+            font-size: 12px;
+            color: #0066cc;
+            background-color: #f8f9fa;
+            padding: 5px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .news-image {
+            background-color: #e9ecef;
+            border: 1px dashed #adb5bd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #495057;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .image-label { font-size: 12px; font-weight: bold; }
+
+        .news-body h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        .news-body p {
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+
+        /* Controls */
+        #controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            color: white;
+        }
+        button:active { transform: scale(0.98); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        #start-btn, #next-btn, #end-btn {
+            background-color: var(--primary-color);
+            width: 100%;
+            margin-top: auto;
+        }
+
+        .btn-judge[data-answer="reliable"] { background-color: var(--btn-reliable); }
+        .btn-judge[data-answer="insufficient"] { background-color: var(--btn-insufficient); color: #fff; }
+        .btn-judge[data-answer="suspicious"] { background-color: var(--btn-suspicious); }
+
+        /* Feedback Screen */
+        #feedback-result {
+            font-size: 28px;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .result-correct { background-color: #d4edda; color: #155724; }
+        .result-incorrect { background-color: #f8d7da; color: #721c24; }
+        
+        #feedback-explanation {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary-color);
+            font-size: 15px;
+        }
+
+        /* End Screen */
+        .end-status {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Status Header -->
+    <div id="header">
+        <span id="timer-display">TIME: --</span>
+        <span id="progress-display">Q: -/-</span>
+        <span id="score-display">SCORE: 0</span>
+    </div>
+
+    <!-- Screen 1: Start -->
+    <div id="start-screen" class="screen active">
+        <h1>フェイクニュース<br>判定ゲーム</h1>
+        <p>タイムラインに流れてくるニュース記事をチェックし、情報リテラシーをテストしましょう。</p>
+        <p>以下のポイントに注意して、3つの選択肢から判定を下してください。</p>
+        <ul style="margin-left: 20px; margin-bottom: 20px; font-size: 14px; line-height: 1.8;">
+            <li><b>発信元</b>は信頼できる機関か？</li>
+            <li><b>URL</b>はおかしくないか？</li>
+            <li><b>日付</b>は古くないか？</li>
+            <li><b>画像</b>に不自然な加工やAIの痕跡はないか？</li>
+            <li><b>タイトル</b>が過度に不安を煽っていないか？</li>
+        </ul>
+        <button id="start-btn">ゲームスタート</button>
+    </div>
+
+    <!-- Screen 2: Game -->
+    <div id="game-screen" class="screen">
+        <div id="news-card">
+            <div class="news-header">
+                <div class="news-source" id="val-source"></div>
+                <div class="news-date" id="val-date"></div>
+            </div>
+            <div class="news-url" id="val-url"></div>
+            <div class="news-image">
+                <span class="image-label">【添付画像の内容】</span>
+                <span id="val-image-desc"></span>
+            </div>
+            <div class="news-body">
+                <h2 id="val-title"></h2>
+                <p id="val-content"></p>
+            </div>
+        </div>
+        <div id="controls">
+            <button class="btn-judge" data-answer="reliable">⭕ 信頼できる (公的・確実)</button>
+            <button class="btn-judge" data-answer="insufficient">❓ 保留 (証拠不十分・個人の噂)</button>
+            <button class="btn-judge" data-answer="suspicious">❌ 怪しい (偽情報の可能性大)</button>
+        </div>
+    </div>
+
+    <!-- Screen 3: Feedback -->
+    <div id="feedback-screen" class="screen">
+        <div id="feedback-result"></div>
+        <p><b>【解説】</b></p>
+        <div id="feedback-explanation"></div>
+        <button id="next-btn">次のニュースへ</button>
+    </div>
+
+    <!-- Screen 4: End -->
+    <div id="end-screen" class="screen">
+        <h1>判定完了</h1>
+        <div class="end-status">
+            <div id="final-score" style="font-size: 28px; margin-bottom: 10px;"></div>
+            <div id="clear-status"></div>
+        </div>
+        <p style="text-align: center; font-size: 14px; color: var(--text-sub);">
+            すべての情報を疑うのではなく、<br>根拠を基に判断することが大切です。
+        </p>
+        <button id="end-btn">結果を送信して終了</button>
+    </div>
+</div>
+
+<script>
+/* =========================================
+   Configuration (設定)
+========================================= */
+const USER_SETTINGS = {
+    TOTAL_QUESTIONS: 5,        // 出題数
+    CLEAR_SCORE: 3,            // クリア条件となる正解数
+    TIME_LIMIT_SEC: 90,        // 全体の制限時間(秒)
+    SCORE_PER_CORRECT: 1       // 1問正解あたりのスコア
+};
+
+/* =========================================
+   Game Data (問題データ)
+========================================= */
+const NEWS_DATABASE = [
+    {
+        title: "【緊急速報】明日から水道水が有料化！？今すぐ備蓄を！",
+        source: "まとめニュース速報",
+        url: "http://matome-news-sokuho.unknown.domain/article/1",
+        date: "2023年10月24日",
+        imageDesc: "蛇口からお札が出ている雑なコラージュ画像",
+        content: "政府関係者によると、明日から全国で水道水の従量課金が大幅に値上げされるとのこと。信じられない人は今すぐシェアして周りに知らせよう！",
+        correctAnswer: "suspicious",
+        explanation: "タイトルが過度に不安を煽っており、情報源が不明確なまとめサイトです。URLのドメインも不自然です。偽情報の典型的なパターンです。"
+    },
+    {
+        title: "大雨に伴う避難指示の発令について",
+        source: "〇〇市 防災対策課",
+        url: "https://www.city.example.lg.jp/bousai/12345",
+        date: "本日 14:00",
+        imageDesc: "市役所の公式ロゴマーク",
+        content: "〇〇川の氾濫危険水位到達の見込みのため、第1、第2地区に避難指示を発令しました。対象地域の方は速やかに安全な場所へ避難してください。",
+        correctAnswer: "reliable",
+        explanation: "地方公共団体を示す「lg.jp」ドメインを持つ公式サイトからの発表です。発信元が明確で客観的な事実に基づいています。"
+    },
+    {
+        title: "近所のスーパーで宇宙人を見た！",
+        source: "SNSユーザー @UFO_hunter",
+        url: "https://sns.example.com/ufo_hunter/post/999",
+        date: "昨日 22:30",
+        imageDesc: "ピンボケして何が写っているか全くわからない暗い写真",
+        content: "絶対宇宙人だった！友達も見たって言ってる。みんな気を付けて！",
+        correctAnswer: "insufficient",
+        explanation: "個人の主観的な投稿であり、客観的な証拠（鮮明な画像や複数の信頼できる目撃情報）が不足しています。事実として拡散するには根拠が弱すぎます。"
+    },
+    {
+        title: "画期的！1日1粒で1ヶ月-10kgのサプリがついに完成",
+        source: "美容と健康ラボ",
+        url: "https://beauty-health-labo.com/diet-miracle",
+        date: "2024年4月1日",
+        imageDesc: "白衣を着た人物の写真（背景の文字がぐちゃぐちゃで、指の数がおかしいなどAI生成の痕跡あり）",
+        content: "有名大学の教授も絶賛！今なら初回無料（※定期購入の縛りあり）。在庫がなくなる前に急いで購入を！",
+        correctAnswer: "suspicious",
+        explanation: "「1ヶ月-10kg」などの極端な効果を謳っており、画像にAI生成特有の破綻が見られます。詐欺的な広告の可能性が高いです。"
+    },
+    {
+        title: "大雪で交通機関が完全に麻痺。帰宅困難者が続出",
+        source: "全国ニュース通信社",
+        url: "https://www.news-agency.example.jp/society/20180122",
+        date: "2018年1月22日", 
+        imageDesc: "雪に覆われた駅前で立ち往生する人々の写真",
+        content: "首都圏を中心に記録的な大雪となり、JR各線は運転を見合わせています。駅周辺は大混乱となっています。",
+        correctAnswer: "suspicious",
+        explanation: "ニュースの発信元自体は実在するものですが、【日付が数年前】のものです。古い災害ニュースが「今起きている」かのように拡散されるケースには注意が必要です。"
+    },
+    {
+        title: "新しいデザインの紙幣の発行が開始されました",
+        source: "日本銀行",
+        url: "https://www.boj.or.jp/note_tfjgs/note/n_note/index.htm",
+        date: "2024年7月3日",
+        imageDesc: "新紙幣（一万円、五千円、千円）のサンプル画像",
+        content: "本日より、新しいデザインの日本銀行券（紙幣）の発行を開始しました。なお、従来の旧紙幣も引き続きご使用いただけます。",
+        correctAnswer: "reliable",
+        explanation: "日本銀行の公式ウェブサイト（or.jpドメイン）からの正式な発表であり、客観的事実に基づいた信頼できる情報です。"
+    }
+];
+
+/* =========================================
+   Game Logic Class
+========================================= */
+class FakeNewsGame {
+    constructor() {
+        this.score = 0;
+        this.currentQuestionIndex = 0;
+        this.timeRemaining = USER_SETTINGS.TIME_LIMIT_SEC;
+        this.timerInterval = null;
+        this.questions = [];
+        this.isClear = false;
+
+        // DOM Elements cache
+        this.dom = {
+            screens: document.querySelectorAll('.screen'),
+            timer: document.getElementById('timer-display'),
+            progress: document.getElementById('progress-display'),
+            score: document.getElementById('score-display'),
+            // Card elements
+            source: document.getElementById('val-source'),
+            date: document.getElementById('val-date'),
+            url: document.getElementById('val-url'),
+            imageDesc: document.getElementById('val-image-desc'),
+            title: document.getElementById('val-title'),
+            content: document.getElementById('val-content'),
+            // Feedback elements
+            fbResult: document.getElementById('feedback-result'),
+            fbExplanation: document.getElementById('feedback-explanation'),
+            // End elements
+            finalScore: document.getElementById('final-score'),
+            clearStatus: document.getElementById('clear-status'),
+            // Buttons
+            startBtn: document.getElementById('start-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            endBtn: document.getElementById('end-btn'),
+            judgeBtns: document.querySelectorAll('.btn-judge')
+        };
+
+        // Bindings for event listeners to maintain 'this' context and allow removal
+        this.handleStart = this.startGame.bind(this);
+        this.handleNext = this.nextQuestion.bind(this);
+        this.handleEnd = this.finishGame.bind(this);
+        this.handleJudge = this.processAnswer.bind(this);
+    }
+
+    init() {
+        this.dom.startBtn.addEventListener('click', this.handleStart);
+        this.dom.nextBtn.addEventListener('click', this.handleNext);
+        this.dom.endBtn.addEventListener('click', this.handleEnd);
+        
+        this.dom.judgeBtns.forEach(btn => {
+            btn.addEventListener('click', this.handleJudge);
+        });
+
+        this.updateHeader();
+    }
+
+    showScreen(screenId) {
+        this.dom.screens.forEach(screen => screen.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    shuffleArray(array) {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    startGame() {
+        // Prepare questions
+        const shuffled = this.shuffleArray(NEWS_DATABASE);
+        this.questions = shuffled.slice(0, USER_SETTINGS.TOTAL_QUESTIONS);
+        
+        this.score = 0;
+        this.currentQuestionIndex = 0;
+        this.timeRemaining = USER_SETTINGS.TIME_LIMIT_SEC;
+        
+        this.startTimer();
+        this.renderQuestion();
+        this.showScreen('game-screen');
+    }
+
+    startTimer() {
+        this.updateHeader();
+        this.timerInterval = setInterval(() => {
+            this.timeRemaining--;
+            this.updateHeader();
+            if (this.timeRemaining <= 0) {
+                this.timeUp();
+            }
+        }, 1000);
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    updateHeader() {
+        this.dom.timer.textContent = `TIME: ${Math.max(0, this.timeRemaining)}s`;
+        this.dom.score.textContent = `SCORE: ${this.score}`;
+        
+        if (this.questions.length > 0) {
+            const displayIndex = Math.min(this.currentQuestionIndex + 1, USER_SETTINGS.TOTAL_QUESTIONS);
+            this.dom.progress.textContent = `Q: ${displayIndex}/${USER_SETTINGS.TOTAL_QUESTIONS}`;
+        }
+    }
+
+    renderQuestion() {
+        const q = this.questions[this.currentQuestionIndex];
+        this.dom.source.textContent = q.source;
+        this.dom.date.textContent = q.date;
+        this.dom.url.textContent = q.url;
+        this.dom.imageDesc.textContent = q.imageDesc;
+        this.dom.title.textContent = q.title;
+        this.dom.content.textContent = q.content;
+        this.updateHeader();
+    }
+
+    processAnswer(event) {
+        const selectedAnswer = event.currentTarget.getAttribute('data-answer');
+        const q = this.questions[this.currentQuestionIndex];
+        const isCorrect = (selectedAnswer === q.correctAnswer);
+
+        if (isCorrect) {
+            this.score += USER_SETTINGS.SCORE_PER_CORRECT;
+            this.dom.fbResult.textContent = "⭕ 正解！";
+            this.dom.fbResult.className = "result-correct";
+        } else {
+            this.dom.fbResult.textContent = "❌ 不正解...";
+            this.dom.fbResult.className = "result-incorrect";
+        }
+
+        this.dom.fbExplanation.textContent = q.explanation;
+        this.updateHeader();
+        this.showScreen('feedback-screen');
+    }
+
+    nextQuestion() {
+        this.currentQuestionIndex++;
+        if (this.currentQuestionIndex >= USER_SETTINGS.TOTAL_QUESTIONS) {
+            this.endGame();
+        } else {
+            this.renderQuestion();
+            this.showScreen('game-screen');
+        }
+    }
+
+    timeUp() {
+        this.stopTimer();
+        alert("タイムアップ！");
+        this.endGame();
+    }
+
+    endGame() {
+        this.stopTimer();
+        this.isClear = this.score >= USER_SETTINGS.CLEAR_SCORE;
+        
+        this.dom.finalScore.textContent = `スコア: ${this.score} / ${USER_SETTINGS.TOTAL_QUESTIONS * USER_SETTINGS.SCORE_PER_CORRECT}`;
+        
+        if (this.isClear) {
+            this.dom.clearStatus.textContent = "🎉 クリア！優れた情報リテラシーです！";
+            this.dom.clearStatus.style.color = "#2ecc71";
+        } else {
+            this.dom.clearStatus.textContent = "💦 ゲームオーバー。情報の見極めに注意しましょう。";
+            this.dom.clearStatus.style.color = "#e74c3c";
+        }
+
+        this.showScreen('end-screen');
+    }
+
+    finishGame() {
+        // Collect results
+        const finalScore = this.score;
+        const finalClearStatus = this.isClear;
+
+        // Cleanup before sending message to avoid any memory leaks
+        this.destroy();
+
+        // Send postMessage to parent window
+        window.parent.postMessage({
+            type: 'MINIGAME_END',
+            flags: {
+                minigame_score: finalScore,
+                minigame_clear: finalClearStatus
+            }
+        }, '*');
+    }
+
+    destroy() {
+        this.stopTimer();
+
+        // Remove event listeners
+        this.dom.startBtn.removeEventListener('click', this.handleStart);
+        this.dom.nextBtn.removeEventListener('click', this.handleNext);
+        this.dom.endBtn.removeEventListener('click', this.handleEnd);
+        
+        this.dom.judgeBtns.forEach(btn => {
+            btn.removeEventListener('click', this.handleJudge);
+        });
+    }
+}
+
+/* =========================================
+   Initialization
+========================================= */
+document.addEventListener('DOMContentLoaded', () => {
+    const game = new FakeNewsGame();
+    game.init();
+});
+</script>
+
+</body>
+</html>

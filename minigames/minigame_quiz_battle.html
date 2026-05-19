@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情報リテラシー クイズバトル</title>
+  <style>
+    /* =========================================================
+       CSS リセット & 基本設定
+    ========================================================= */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      background-color: #222;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      max-height: 600px;
+      background-color: #333;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+
+    /* =========================================================
+       ヘッダー（ステータス情報）
+    ========================================================= */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: #111;
+      border-bottom: 2px solid #555;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .text-combo { color: #FFD700; }
+    .text-time { color: #00FF7F; }
+    
+    /* =========================================================
+       バトルエリア（キャラクター表示）
+    ========================================================= */
+    .battle-area {
+      flex: 1;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: linear-gradient(to bottom, #4a4a4a, #2c2c2c);
+      padding: 20px;
+      position: relative;
+    }
+    .character-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 150px;
+    }
+    .char-name {
+      font-size: 1rem;
+      margin-bottom: 5px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    /* ---------------------------------------------------------
+       【画像差し替えポイント】
+       以下のクラスの background-color を削除し、
+       background-image: url('画像のパス'); 
+       を指定することで好きな画像に変更できます。
+    --------------------------------------------------------- */
+    .char-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 10px;
+      background-size: cover;
+      background-position: center;
+      border: 3px solid #fff;
+      margin-bottom: 10px;
+      transition: transform 0.1s;
+    }
+    .img-player { background-color: #4CAF50; } /* プレイヤーのデフォルト色 */
+    .img-enemy-0 { background-color: #9E9E9E; } /* 敵1の色 */
+    .img-enemy-1 { background-color: #FF9800; } /* 敵2の色 */
+    .img-enemy-2 { background-color: #E91E63; } /* ボスの色 */
+
+    /* ダメージエフェクト */
+    .damage-anim {
+      transform: translateX(-10px) rotate(-5deg);
+      filter: brightness(2) invert(1);
+    }
+
+    /* HPバー */
+    .hp-bg {
+      width: 100%;
+      height: 15px;
+      background-color: #555;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #111;
+    }
+    .hp-fill {
+      height: 100%;
+      width: 100%;
+      background-color: #00FF00;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    /* =========================================================
+       クイズUIエリア
+    ========================================================= */
+    .quiz-area {
+      height: 250px;
+      display: flex;
+      flex-direction: column;
+      background-color: #000;
+      border-top: 3px solid #fff;
+    }
+    .question-box {
+      flex: 1;
+      padding: 15px 20px;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      border-bottom: 1px solid #333;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      height: 150px;
+      gap: 2px;
+      background-color: #333;
+    }
+    .option-btn {
+      background-color: #1a1a1a;
+      color: #fff;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .option-btn:hover { background-color: #444; }
+    .option-btn:active { background-color: #666; }
+
+    /* =========================================================
+       正誤判定オーバーレイ
+    ========================================================= */
+    .feedback-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10rem;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      transform: scale(0.5);
+      z-index: 10;
+    }
+    .feedback-overlay.show-correct {
+      color: rgba(0, 255, 0, 0.8);
+      opacity: 1;
+      transform: scale(1);
+    }
+    .feedback-overlay.show-wrong {
+      color: rgba(255, 0, 0, 0.8);
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* =========================================================
+       各種画面（スタート、リザルト）
+    ========================================================= */
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    .screen h1 { font-size: 2.5rem; margin-bottom: 20px; text-align: center;}
+    .screen p { font-size: 1.2rem; margin-bottom: 30px; text-align: center; line-height: 1.6;}
+    .action-btn {
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .action-btn:hover { background-color: #0056b3; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- UI構築はJSで行う -->
+  </div>
+
+<script>
+  /**
+   * =====================================================================
+   * 【設定項目】 USER_SETTINGS
+   * ゲームバランスやクイズの内容はすべてここで設定します。
+   * =====================================================================
+   */
+  const USER_SETTINGS = {
+    // 制限時間（秒）
+    TIME_LIMIT_SEC: 90,
+
+    // プレイヤー設定
+    PLAYER_MAX_HP: 30,       // プレイヤーの体力（不正解時のダメージ基準）
+    WRONG_DAMAGE: 10,        // 不正解時にプレイヤーが受けるダメージ
+
+    // 攻撃・スコア計算設定
+    BASE_DAMAGE: 10,         // 正解時に敵に与える基本ダメージ
+    COMBO_BONUS_DMG: 2,      // 1コンボごとに増加するダメージ量
+    SCORE_PER_DAMAGE: 5,     // 与えたダメージ × この値 がスコアになる
+    TIME_BONUS_SCORE: 10,    // クリア時、残り時間1秒につき加算されるスコア
+    BOSS_CLEAR_BONUS: 1000,  // 全敵撃破時のボーナススコア
+
+    // 敵データ（順番に出現）
+    // imageClassに指定したクラス名にCSSで背景画像を設定することで画像を差し替え可能
+    ENEMIES: [
+      { name: "スパムメール", maxHp: 30, imageClass: "img-enemy-0" },
+      { name: "フェイクニュース", maxHp: 40, imageClass: "img-enemy-1" },
+      { name: "ランサムウェア(BOSS)", maxHp: 60, imageClass: "img-enemy-2" }
+    ],
+
+    // クイズデータ（情報リテラシー問題）
+    // options配列の[0]が正解となるように記述してください。ゲーム内で自動的にシャッフルされます。
+    QUIZ_DATA: [
+      {
+        question: "知らない人から「パスワードを教えて」とメッセージが来ました。正しい対応はどれ？",
+        options: ["絶対に教えない", "仲良くなってから教える", "パスワードを変えてから教える", "家族のパスワードなら教える"]
+      },
+      {
+        question: "インターネットで調べた文章を、そのまま自分の宿題として提出してもよい？",
+        options: ["著作権の侵害になるためダメ", "無料のサイトならOK", "少しだけならOK", "自分の名前を書けばOK"]
+      },
+      {
+        question: "SNSに友達が写っている写真を載せたいとき、正しい対応はどれ？",
+        options: ["友達に許可をもらってから載せる", "友達だから許可なく載せてよい", "顔を少し隠せば許可なく載せてよい", "削除できるようにしておけば載せてよい"]
+      },
+      {
+        question: "「おめでとう！最新スマホが当選しました！ここをクリック」というメールが届いた。どうする？",
+        options: ["詐欺かもしれないので無視する", "急いでクリックして受け取る", "友達に転送する", "返信して本当か確かめる"]
+      },
+      {
+        question: "パソコンやスマホのセキュリティ対策として正しいのはどれ？",
+        options: ["OSやアプリを常に最新の状態にする", "同じパスワードを色々なサイトで使い回す", "セキュリティソフトは一度入れたら更新しない", "ウイルス感染の警告が出たらすぐ表示された番号に電話する"]
+      },
+      {
+        question: "アカウントのパスワードを作るとき、安全性が高いのはどれ？",
+        options: ["アルファベット、数字、記号を組み合わせた長い文字列", "自分の誕生日や電話番号", "123456やpasswordなど覚えやすいもの", "好きなキャラクターの名前"]
+      },
+      {
+        question: "パスワードなしのフリーWi-Fiを利用するときに、最も危険な行動はどれ？",
+        options: ["クレジットカード情報を入力して買い物する", "ニュースサイトを読む", "地図アプリで行き先を調べる", "天気予報を確認する"]
+      },
+      {
+        question: "メールに添付されていた見知らぬファイル。どうするべき？",
+        options: ["ウイルスの可能性があるので開かずに削除する", "念のため一度開いて中身を確認する", "ウイルス対策ソフトを一時停止してから開く", "友達に送って代わりに開いてもらう"]
+      }
+    ]
+  };
+
+
+  /**
+   * =====================================================================
+   * 【ゲームロジック】 MiniGame Class
+   * オブジェクト指向で状態をカプセル化し、親への結果通知やメモリ管理を行います。
+   * =====================================================================
+   */
+  class MiniGame {
+    constructor(containerId, settings) {
+      this.container = document.getElementById(containerId);
+      this.settings = settings;
+
+      // 状態変数
+      this.timerId = null;
+      this.score = 0;
+      this.time = settings.TIME_LIMIT_SEC;
+      this.combo = 0;
+      this.playerHp = settings.PLAYER_MAX_HP;
+      
+      this.currentEnemyIndex = 0;
+      this.enemyHp = 0;
+      
+      this.currentQuestion = null;
+      this.isClear = false;
+      this.isGameOver = false;
+
+      // 問題の出題順を管理する配列
+      this.questionPool = [];
+
+      // イベントリスナーのバインド（解除時の参照用）
+      this.boundHandleClick = this.handleClick.bind(this);
+    }
+
+    /**
+     * ゲーム初期化
+     */
+    init() {
+      this.renderBaseHTML();
+      
+      // DOM要素のキャッシュ
+      this.ui = {
+        timeText: this.container.querySelector('#ui-time'),
+        scoreText: this.container.querySelector('#ui-score'),
+        comboText: this.container.querySelector('#ui-combo'),
+        playerHpFill: this.container.querySelector('#ui-player-hp'),
+        enemyHpFill: this.container.querySelector('#ui-enemy-hp'),
+        enemyName: this.container.querySelector('#ui-enemy-name'),
+        playerImg: this.container.querySelector('#ui-player-img'),
+        enemyImg: this.container.querySelector('#ui-enemy-img'),
+        questionText: this.container.querySelector('#ui-question-text'),
+        optionsGrid: this.container.querySelector('#ui-options-grid'),
+        feedbackOverlay: this.container.querySelector('#ui-feedback'),
+        startScreen: this.container.querySelector('#screen-start'),
+        resultScreen: this.container.querySelector('#screen-result'),
+        resultTitle: this.container.querySelector('#result-title'),
+        resultMessage: this.container.querySelector('#result-message'),
+      };
+
+      // コンテナ全体でクリックイベントを監視（イベントデリゲーション）
+      this.container.addEventListener('click', this.boundHandleClick);
+
+      // 初期描画のセットアップ
+      this.setupEnemy();
+      this.updateStatusUI();
+    }
+
+    /**
+     * DOM構築
+     */
+    renderBaseHTML() {
+      this.container.innerHTML = `
+        <!-- ヘッダー -->
+        <div class="header">
+          <div class="text-time">残り時間: <span id="ui-time">${this.time}</span>秒</div>
+          <div class="text-score">SCORE: <span id="ui-score">0</span></div>
+          <div class="text-combo"><span id="ui-combo">0</span> COMBO!</div>
+        </div>
+
+        <!-- バトルエリア -->
+        <div class="battle-area">
+          <div class="character-box">
+            <div class="char-name">あなた</div>
+            <div id="ui-player-img" class="char-img img-player"></div>
+            <div class="hp-bg"><div id="ui-player-hp" class="hp-fill"></div></div>
+          </div>
+          <div class="character-box">
+            <div id="ui-enemy-name" class="char-name">敵</div>
+            <div id="ui-enemy-img" class="char-img"></div>
+            <div class="hp-bg"><div id="ui-enemy-hp" class="hp-fill"></div></div>
+          </div>
+          <!-- フィードバック演出 -->
+          <div id="ui-feedback" class="feedback-overlay"></div>
+        </div>
+
+        <!-- クイズエリア -->
+        <div class="quiz-area">
+          <div id="ui-question-text" class="question-box"></div>
+          <div id="ui-options-grid" class="options-grid"></div>
+        </div>
+
+        <!-- スタート画面 -->
+        <div id="screen-start" class="screen">
+          <h1>情報リテラシー<br>クイズバトル</h1>
+          <p>クイズに正解してサイバー脅威を撃退しよう！<br>連続正解でダメージアップ！</p>
+          <button class="action-btn" data-action="start">ゲームスタート</button>
+        </div>
+
+        <!-- リザルト画面 -->
+        <div id="screen-result" class="screen hidden">
+          <h1 id="result-title"></h1>
+          <p id="result-message"></p>
+          <button class="action-btn" data-action="finish">完了して戻る</button>
+        </div>
+      `;
+    }
+
+    /**
+     * クリックイベントのディスパッチャ
+     */
+    handleClick(e) {
+      const action = e.target.getAttribute('data-action');
+      
+      if (action === 'start') {
+        this.startGame();
+      } else if (action === 'finish') {
+        this.finishGame();
+      } else if (e.target.classList.contains('option-btn') && !this.isGameOver && !this.isClear) {
+        const isCorrect = e.target.getAttribute('data-correct') === 'true';
+        this.handleAnswer(isCorrect);
+      }
+    }
+
+    /**
+     * ゲーム開始
+     */
+    startGame() {
+      this.ui.startScreen.classList.add('hidden');
+      this.createQuestionPool();
+      this.nextQuestion();
+      
+      // タイマー開始
+      this.timerId = setInterval(() => {
+        this.time--;
+        this.updateStatusUI();
+        if (this.time <= 0) {
+          this.endGame(false, "タイムアップ...");
+        }
+      }, 1000);
+    }
+
+    /**
+     * 敵のセットアップ
+     */
+    setupEnemy() {
+      const enemyData = this.settings.ENEMIES[this.currentEnemyIndex];
+      this.enemyHp = enemyData.maxHp;
+      this.ui.enemyName.textContent = enemyData.name;
+      
+      // 画像クラスの付け替え
+      this.ui.enemyImg.className = "char-img"; // リセット
+      this.ui.enemyImg.classList.add(enemyData.imageClass);
+
+      this.updateHpUI();
+    }
+
+    /**
+     * クイズプール（ランダム出題用）の生成
+     */
+    createQuestionPool() {
+      // 順番をシャッフルしたインデックスの配列を作る
+      const indices = this.settings.QUIZ_DATA.map((_, i) => i);
+      this.questionPool = this.shuffleArray(indices);
+    }
+
+    /**
+     * 次の問題を表示
+     */
+    nextQuestion() {
+      if (this.questionPool.length === 0) {
+        // プールが尽きたら再生成してループ
+        this.createQuestionPool();
+      }
+      
+      const qIndex = this.questionPool.pop();
+      const qData = this.settings.QUIZ_DATA[qIndex];
+      this.currentQuestion = qData;
+
+      this.ui.questionText.textContent = qData.question;
+
+      // 選択肢のシャッフル（元データの[0]が正解）
+      const optionsWithMeta = qData.options.map((text, idx) => ({
+        text: text,
+        isCorrect: idx === 0
+      }));
+      
+      const shuffledOptions = this.shuffleArray(optionsWithMeta);
+
+      // ボタンの生成
+      this.ui.optionsGrid.innerHTML = '';
+      shuffledOptions.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt.text;
+        btn.setAttribute('data-correct', opt.isCorrect);
+        this.ui.optionsGrid.appendChild(btn);
+      });
+    }
+
+    /**
+     * 解答処理
+     */
+    handleAnswer(isCorrect) {
+      if (isCorrect) {
+        // 正解処理
+        this.combo++;
+        const damage = this.settings.BASE_DAMAGE + (this.combo * this.settings.COMBO_BONUS_DMG);
+        this.enemyHp -= damage;
+        this.score += damage * this.settings.SCORE_PER_DAMAGE;
+        
+        this.showFeedback('⭕️', 'show-correct');
+        this.playDamageAnim(this.ui.enemyImg);
+
+        if (this.enemyHp <= 0) {
+          this.enemyHp = 0;
+          this.defeatEnemy();
+        }
+
+      } else {
+        // 不正解処理
+        this.combo = 0;
+        this.playerHp -= this.settings.WRONG_DAMAGE;
+        
+        this.showFeedback('❌', 'show-wrong');
+        this.playDamageAnim(this.ui.playerImg);
+
+        if (this.playerHp <= 0) {
+          this.playerHp = 0;
+          this.endGame(false, "体力がゼロになった...");
+          return;
+        }
+      }
+
+      this.updateStatusUI();
+      this.updateHpUI();
+
+      // ゲームが終わっていなければ次の問題へ
+      if (!this.isGameOver && !this.isClear) {
+        this.nextQuestion();
+      }
+    }
+
+    /**
+     * 敵撃破処理
+     */
+    defeatEnemy() {
+      this.currentEnemyIndex++;
+      if (this.currentEnemyIndex >= this.settings.ENEMIES.length) {
+        // 全敵撃破（クリア）
+        this.endGame(true, "すべての脅威を撃退した！");
+      } else {
+        // 次の敵へ
+        this.setupEnemy();
+      }
+    }
+
+    /**
+     * ステータスUIの更新
+     */
+    updateStatusUI() {
+      this.ui.timeText.textContent = this.time;
+      this.ui.scoreText.textContent = this.score;
+      this.ui.comboText.textContent = this.combo;
+    }
+
+    /**
+     * HPバーの更新
+     */
+    updateHpUI() {
+      // プレイヤーHP
+      const pPercent = Math.max(0, (this.playerHp / this.settings.PLAYER_MAX_HP) * 100);
+      this.ui.playerHpFill.style.width = `${pPercent}%`;
+      this.ui.playerHpFill.style.backgroundColor = pPercent > 30 ? '#00FF00' : '#FF0000';
+
+      // 敵HP
+      const enemyData = this.settings.ENEMIES[Math.min(this.currentEnemyIndex, this.settings.ENEMIES.length - 1)];
+      const ePercent = Math.max(0, (this.enemyHp / enemyData.maxHp) * 100);
+      this.ui.enemyHpFill.style.width = `${ePercent}%`;
+      this.ui.enemyHpFill.style.backgroundColor = ePercent > 30 ? '#FF9800' : '#FF0000';
+    }
+
+    /**
+     * 正誤エフェクトの表示
+     */
+    showFeedback(mark, className) {
+      this.ui.feedbackOverlay.textContent = mark;
+      this.ui.feedbackOverlay.className = `feedback-overlay ${className}`;
+      
+      // 連続で呼ばれた時のためにリセットして再トリガー
+      clearTimeout(this.feedbackTimer);
+      this.feedbackTimer = setTimeout(() => {
+        this.ui.feedbackOverlay.className = 'feedback-overlay';
+      }, 500);
+    }
+
+    /**
+     * ダメージアニメーション
+     */
+    playDamageAnim(element) {
+      element.classList.add('damage-anim');
+      setTimeout(() => {
+        element.classList.remove('damage-anim');
+      }, 150);
+    }
+
+    /**
+     * 配列のシャッフル関数（Fisher-Yates）
+     */
+    shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    /**
+     * ゲーム終了処理
+     */
+    endGame(isClear, reasonMsg) {
+      this.isClear = isClear;
+      this.isGameOver = !isClear;
+      clearInterval(this.timerId);
+
+      // スコア計算
+      if (isClear) {
+        this.score += this.time * this.settings.TIME_BONUS_SCORE;
+        this.score += this.settings.BOSS_CLEAR_BONUS;
+      }
+
+      // リザルト画面表示
+      this.ui.resultTitle.textContent = isClear ? "GAME CLEAR!" : "GAME OVER";
+      this.ui.resultTitle.style.color = isClear ? "#00FF7F" : "#FF6347";
+      
+      this.ui.resultMessage.innerHTML = `
+        ${reasonMsg}<br><br>
+        最終スコア: ${this.score}
+      `;
+      
+      this.ui.resultScreen.classList.remove('hidden');
+    }
+
+    /**
+     * 【必須要件】 親ウィンドウへ結果を送信し、インスタンスを破棄する
+     */
+    finishGame() {
+      // 1. メッセージ送信
+      window.parent.postMessage({
+        type: 'MINIGAME_END',
+        flags: {
+          minigame_score: this.score,
+          minigame_clear: this.isClear
+        }
+      }, '*');
+
+      // 2. メモリリーク防止のため自身の破棄処理を呼ぶ
+      this.destroy();
+    }
+
+    /**
+     * インスタンス破棄処理（安全性確保）
+     */
+    destroy() {
+      clearInterval(this.timerId);
+      clearTimeout(this.feedbackTimer);
+      
+      // イベントリスナーの解除
+      this.container.removeEventListener('click', this.boundHandleClick);
+      
+      // DOMのクリア
+      this.container.innerHTML = '';
+      
+      console.log("MiniGame instance destroyed safely.");
+    }
+  }
+
+  /**
+   * =====================================================================
+   * DOM読み込み完了後にゲームを初期化
+   * =====================================================================
+   */
+  document.addEventListener('DOMContentLoaded', () => {
+    // クラスをインスタンス化して安全にゲームを起動
+    const game = new MiniGame('game-container', USER_SETTINGS);
+    game.init();
+  });
+
+</script>
+</body>
+</html>

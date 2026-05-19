@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情報リテラシー・カードバトル</title>
+  <style>
+    /* =========================================================
+       CSS リセット & フォント設定
+    ========================================================= */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Impact", "Arial Black", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      background-color: #f4f4f6;
+      background-image: repeating-linear-gradient(45deg, #ffffff, #ffffff 10px, #f0f0f5 10px, #f0f0f5 20px);
+      color: #1a1a1c;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      max-height: 600px;
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      overflow: hidden;
+      border: 4px solid #1a1a1c;
+    }
+
+    /* =========================================================
+       UI
+    ========================================================= */
+    .slant-header {
+      background: #ffb100;
+      color: #1a1a1c;
+      padding: 10px 20px;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      transform: skewX(-15deg) translateX(-10px);
+      width: calc(100% + 20px);
+      border-bottom: 4px solid #1a1a1c;
+      display: flex;
+      justify-content: space-between;
+    }
+    .slant-header-inner {
+      transform: skewX(15deg);
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .btn-skew {
+      background: #00d0ff;
+      color: #1a1a1c;
+      border: 3px solid #1a1a1c;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      font-weight: 900;
+      cursor: pointer;
+      transform: skewX(-10deg);
+      transition: all 0.2s;
+      box-shadow: 4px 4px 0 #1a1a1c;
+    }
+    .btn-skew span {
+      display: block;
+      transform: skewX(10deg);
+    }
+    .btn-skew:hover {
+      background: #ffb100;
+      transform: skewX(-10deg) translateY(-2px);
+      box-shadow: 6px 6px 0 #1a1a1c;
+    }
+    .btn-skew:active {
+      transform: skewX(-10deg) translateY(2px);
+      box-shadow: 2px 2px 0 #1a1a1c;
+    }
+
+    /* =========================================================
+       バトルエリア（敵とHPバー）
+    ========================================================= */
+    .battle-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 15px 20px;
+      position: relative;
+      background: linear-gradient(135deg, #e0e0eb, #ffffff);
+    }
+
+    /* HPバー（斜めデザイン） */
+    .hp-container {
+      width: 80%;
+      margin-bottom: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hp-label {
+      font-weight: 900;
+      font-size: 1.1rem;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .hp-bar-bg {
+      width: 100%;
+      height: 22px;
+      background: #1a1a1c;
+      transform: skewX(-15deg);
+      border: 3px solid #1a1a1c;
+      position: relative;
+      overflow: hidden;
+    }
+    .hp-bar-fill {
+      height: 100%;
+      width: 100%;
+      transition: width 0.3s ease-out;
+    }
+    .enemy-hp .hp-bar-fill { background: #ff3366; }
+    .player-hp .hp-bar-fill { background: #00d0ff; }
+    .hp-text {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 900;
+      transform: skewX(15deg);
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    /* 敵画像 */
+    .enemy-image {
+      width: 130px;
+      height: 130px;
+      background-color: #333;
+      border: 4px solid #1a1a1c;
+      border-radius: 10px;
+      margin: 10px 0;
+      box-shadow: 8px 8px 0 #ff3366;
+      transition: transform 0.1s;
+    }
+    .damage-anim {
+      animation: shake 0.3s;
+      filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px) rotate(-5deg); }
+      50% { transform: translateX(10px) rotate(5deg); }
+      75% { transform: translateX(-10px) rotate(-5deg); }
+    }
+
+    /* =========================================================
+       手札エリア
+    ========================================================= */
+    .hand-area {
+      height: 290px;
+      background: #1a1a1c;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      border-top: 4px solid #ffb100;
+    }
+
+    /* =========================================================
+       カードデザイン
+    ========================================================= */
+    .ygo-card {
+      width: 170px;
+      height: 245px;
+      background: #d4a373; 
+      border: 3px solid #333;
+      border-radius: 4px;
+      padding: 5px;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .ygo-card:hover {
+      transform: translateY(-15px);
+      box-shadow: 0 15px 20px rgba(0,0,0,0.6);
+      z-index: 10;
+    }
+    
+    /* カード名と属性 */
+    .ygo-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 2px solid #333;
+      padding: 2px 5px;
+      background: linear-gradient(to right, #fff, #e6e6e6);
+      margin-bottom: 2px;
+    }
+    .ygo-name {
+      font-size: 0.75rem;
+      font-weight: 900;
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      letter-spacing: -0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #000;
+    }
+    .ygo-attr {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffb100;
+      border: 1px solid #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.65rem;
+      color: #fff;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* レベル（星） */
+    .ygo-level {
+      text-align: right;
+      font-size: 0.8rem;
+      color: #d90000;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+      text-shadow: 1px 1px 0 #fff;
+    }
+
+    /* カード画像 */
+    .ygo-image {
+      flex: 1; /* 高さを自動的に確保 */
+      min-height: 80px; /* 最低限の高さを保証 */
+      border: 2px solid #333;
+      background-color: #999;
+      background-size: cover;
+      background-position: center;
+      margin-bottom: 4px;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    }
+    
+    /* テキスト・効果欄 */
+    .ygo-text-box {
+      height: 80px; /* テキスト領域を広げる */
+      background: #fdf5e6;
+      border: 2px solid #333;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .ygo-type {
+      font-size: 0.65rem;
+      font-weight: bold;
+      color: #000;
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      margin-bottom: 2px;
+    }
+    .ygo-desc {
+      font-size: 0.6rem;
+      line-height: 1.3;
+      color: #000;
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      /* 複数行ではみ出る場合は「...」にする保険設定 */
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+    }
+    .ygo-stats {
+      text-align: right;
+      font-size: 0.8rem;
+      font-weight: 900;
+      border-top: 1px solid #ccc;
+      padding-top: 2px;
+      color: #000;
+    }
+
+    /* =========================================================
+       クイズモーダル（カード選択時にポップアップ）
+    ========================================================= */
+    .quiz-modal {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(26, 26, 28, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .quiz-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .quiz-content {
+      width: 90%;
+      background: #fff;
+      border: 4px solid #ffb100;
+      padding: 20px;
+      box-shadow: 10px 10px 0 #00d0ff;
+    }
+    .quiz-question {
+      font-size: 1.1rem;
+      font-weight: 900;
+      margin-bottom: 20px;
+      line-height: 1.5;
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .quiz-option-btn {
+      background: #f4f4f6;
+      border: 3px solid #1a1a1c;
+      padding: 10px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .quiz-option-btn:hover {
+      background: #00d0ff;
+      color: #fff;
+      transform: translateX(10px);
+    }
+
+    /* =========================================================
+       カットイン演出（ATTACK / COUNTER）
+    ========================================================= */
+    .cutin-overlay {
+      position: absolute;
+      top: 40%; left: -100%; width: 100%;
+      padding: 20px 0;
+      text-align: center;
+      font-size: 4rem;
+      font-weight: 900;
+      font-style: italic;
+      color: #fff;
+      z-index: 30;
+      pointer-events: none;
+      text-shadow: 4px 4px 0 #000;
+      transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .cutin-overlay.show {
+      left: 0;
+    }
+    .cutin-attack { background: rgba(0, 208, 255, 0.8); border-top: 5px solid #fff; border-bottom: 5px solid #fff;}
+    .cutin-counter { background: rgba(255, 51, 102, 0.8); border-top: 5px solid #fff; border-bottom: 5px solid #fff;}
+
+    /* =========================================================
+       各種画面（スタート、リザルト）
+    ========================================================= */
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(244, 244, 246, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 40;
+    }
+    .screen h1 { font-size: 3rem; margin-bottom: 20px; text-align: center; color: #1a1a1c; text-transform: uppercase; font-style: italic; text-shadow: 3px 3px 0 #ffb100;}
+    .screen p { font-size: 1.2rem; margin-bottom: 30px; text-align: center; line-height: 1.6; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;}
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- UIはJSで構築 -->
+  </div>
+
+<script>
+  /**
+   * =====================================================================
+   * 【設定項目】 USER_SETTINGS
+   * =====================================================================
+   */
+  const USER_SETTINGS = {
+    // バトルステータス
+    PLAYER_MAX_HP: 4000,
+    ENEMY_MAX_HP: 6000,
+    ENEMY_ATK: 1000,       // クイズ不正解時に受けるダメージ
+
+    // 手札の枚数
+    HAND_SIZE: 3,
+
+    // カードデータ（デッキプール）
+    CARDS: [
+      { id: "c1", name: "アンチウイルス剣士", attr: "光", level: "★★★★", type: "[サイバー族/効果]", desc: "悪意あるプログラムを検知し、斬り裂く。", atk: 1500, imgClass: "img-card-c1" },
+      { id: "c2", name: "ファイアウォール竜", attr: "炎", level: "★★★★★★", type: "[ネットワーク族/効果]", desc: "不正なアクセスを業火で焼き尽くし遮断する。", atk: 2500, imgClass: "img-card-c2" },
+      { id: "c3", name: "PW・ジェネレータ", attr: "地", level: "★★★", type: "[暗号族/効果]", desc: "複雑で強固な文字列を生成し、防御を崩させない。", atk: 1200, imgClass: "img-card-c3" },
+      { id: "c4", name: "ファクトチェッカー", attr: "風", level: "★★★★", type: "[情報族/効果]", desc: "フェイクニュースを見破り、真実の矢を放つ。", atk: 1800, imgClass: "img-card-c4" },
+      { id: "c5", name: "二段階認証の盾", attr: "水", level: "★★", type: "[セキュリティ族/効果]", desc: "一度の突破では崩れない鉄壁の防御。", atk: 1000, imgClass: "img-card-c5" },
+    ],
+
+    // 情報リテラシークイズデータ
+    // options[0] が必ず正解になるように記述（ゲーム内でシャッフルされます）
+    QUESTIONS: [
+      {
+        q: "知らない人から「荷物の不在通知」とURLが書かれたSMSが届いた。正しい対応は？",
+        options: ["URLはクリックせず、公式アプリ等で配送状況を確認する", "急いでURLをクリックして再配達を依頼する", "送信元に電話をかけて確認する", "自分の個人情報を返信して本人確認する"]
+      },
+      {
+        q: "パスワードを安全に管理する方法として正しいのは？",
+        options: ["異なるサービスで別々の長く複雑なパスワードを設定する", "覚えやすいように自分の誕生日をパスワードにする", "1つの強力なパスワードを全てのサイトで使い回す", "モニターの端に付箋でパスワードを貼っておく"]
+      },
+      {
+        q: "SNSに友達と一緒に撮った写真を投稿したい。正しい行動は？",
+        options: ["一緒に写っている友達に許可をもらってから投稿する", "友達だから許可をとらずにすぐに投稿する", "顔が少ししか写っていないので無断で投稿する", "後で消せばいいのでとりあえず投稿する"]
+      },
+      {
+        q: "カフェの「パスワードなしの無料Wi-Fi」を利用する際、避けるべき行動は？",
+        options: ["クレジットカード情報を入力してオンラインショッピングをする", "天気予報のサイトを閲覧する", "地図アプリでお店の場所を調べる", "ニュース記事を読む"]
+      },
+      {
+        q: "災害時、SNSで「〇〇地域で暴動が起きている」という投稿を見た。正しい対応は？",
+        options: ["公的機関などの信頼できる情報源で事実か確認する", "みんなに知らせるためにすぐにリツイート（拡散）する", "友達全員にLINEでその情報を転送する", "真実だと信じてすぐに行動を起こす"]
+      }
+    ]
+  };
+
+  /**
+   * =====================================================================
+   * 【ゲームロジック】 CardBattleGame Class
+   * =====================================================================
+   */
+  class CardBattleGame {
+    constructor(containerId, settings) {
+      this.container = document.getElementById(containerId);
+      this.settings = settings;
+
+      this.playerHp = settings.PLAYER_MAX_HP;
+      this.enemyHp = settings.ENEMY_MAX_HP;
+      this.deck = [];
+      this.hand = [];
+      this.totalDamageDealt = 0;
+      
+      this.currentCard = null;
+      this.currentQuestion = null;
+      
+      this.isGameOver = false;
+      this.isClear = false;
+
+      this.boundHandleClick = this.handleClick.bind(this);
+    }
+
+    init() {
+      this.renderBaseHTML();
+      
+      this.ui = {
+        playerHpText: this.container.querySelector('#ui-player-hp-text'),
+        playerHpBar: this.container.querySelector('#ui-player-hp-bar'),
+        enemyHpText: this.container.querySelector('#ui-enemy-hp-text'),
+        enemyHpBar: this.container.querySelector('#ui-enemy-hp-bar'),
+        handArea: this.container.querySelector('#ui-hand-area'),
+        enemyImg: this.container.querySelector('#ui-enemy-img'),
+        quizModal: this.container.querySelector('#ui-quiz-modal'),
+        quizQuestion: this.container.querySelector('#ui-quiz-question'),
+        quizOptions: this.container.querySelector('#ui-quiz-options'),
+        cutinOverlay: this.container.querySelector('#ui-cutin'),
+        startScreen: this.container.querySelector('#screen-start'),
+        resultScreen: this.container.querySelector('#screen-result'),
+        resultTitle: this.container.querySelector('#result-title'),
+        resultMessage: this.container.querySelector('#result-message')
+      };
+
+      this.container.addEventListener('click', this.boundHandleClick);
+    }
+
+    renderBaseHTML() {
+      this.container.innerHTML = `
+        <div class="slant-header">
+          <div class="slant-header-inner">
+            <span>CYBER BATTLE</span>
+            <span>INFO-LITERACY</span>
+          </div>
+        </div>
+
+        <div class="battle-area">
+          <div class="hp-container enemy-hp">
+            <div class="hp-label">ENEMY VIRUS</div>
+            <div class="hp-bar-bg">
+              <div id="ui-enemy-hp-bar" class="hp-bar-fill"></div>
+              <div id="ui-enemy-hp-text" class="hp-text">${this.enemyHp} / ${this.settings.ENEMY_MAX_HP}</div>
+            </div>
+          </div>
+
+          <div id="ui-enemy-img" class="enemy-image"></div>
+
+          <div class="hp-container player-hp" style="margin-top: 10px;">
+            <div class="hp-label">PLAYER</div>
+            <div class="hp-bar-bg">
+              <div id="ui-player-hp-bar" class="hp-bar-fill"></div>
+              <div id="ui-player-hp-text" class="hp-text">${this.playerHp} / ${this.settings.PLAYER_MAX_HP}</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ui-cutin" class="cutin-overlay"></div>
+
+        <div id="ui-hand-area" class="hand-area"></div>
+
+        <div id="ui-quiz-modal" class="quiz-modal">
+          <div class="quiz-content">
+            <div id="ui-quiz-question" class="quiz-question"></div>
+            <div id="ui-quiz-options" class="quiz-options"></div>
+          </div>
+        </div>
+
+        <div id="screen-start" class="screen">
+          <h1>CYBER<br>CARD BATTLE</h1>
+          <p>情報リテラシーの知識を力に変えろ！<br>カードを選び、クイズに正解して攻撃だ。</p>
+          <button class="btn-skew" data-action="start"><span>BATTLE START</span></button>
+        </div>
+
+        <div id="screen-result" class="screen hidden">
+          <h1 id="result-title"></h1>
+          <p id="result-message"></p>
+          <button class="btn-skew" data-action="finish"><span>システムからログアウト</span></button>
+        </div>
+      `;
+    }
+
+    handleClick(e) {
+      const action = e.target.closest('[data-action]')?.getAttribute('data-action');
+      
+      if (action === 'start') {
+        this.startGame();
+      } else if (action === 'finish') {
+        this.finishGame();
+      } else if (action === 'play-card' && !this.isGameOver && !this.isClear) {
+        const index = e.target.closest('.ygo-card').getAttribute('data-index');
+        this.playCard(parseInt(index, 10));
+      } else if (action === 'answer-quiz') {
+        const isCorrect = e.target.getAttribute('data-correct') === 'true';
+        this.handleAnswer(isCorrect);
+      }
+    }
+
+    startGame() {
+      this.ui.startScreen.classList.add('hidden');
+      this.initDeck();
+      this.drawHand();
+      this.updateHpUI();
+    }
+
+    initDeck() {
+      this.deck = [];
+      for (let i = 0; i < 3; i++) {
+        this.deck = this.deck.concat(this.settings.CARDS);
+      }
+      this.shuffleArray(this.deck);
+    }
+
+    drawHand() {
+      this.hand = [];
+      for (let i = 0; i < this.settings.HAND_SIZE; i++) {
+        if (this.deck.length === 0) this.initDeck();
+        this.hand.push(this.deck.pop());
+      }
+      this.renderHand();
+    }
+
+    renderHand() {
+      this.ui.handArea.innerHTML = '';
+      this.hand.forEach((card, index) => {
+        const cardHTML = `
+          <div class="ygo-card" data-action="play-card" data-index="${index}">
+            <div class="ygo-header-row">
+              <div class="ygo-name" title="${card.name}">${card.name}</div>
+              <div class="ygo-attr">${card.attr}</div>
+            </div>
+            <div class="ygo-level">${card.level}</div>
+            <div class="ygo-image ${card.imgClass}"></div>
+            <div class="ygo-text-box">
+              <div class="ygo-type">${card.type}</div>
+              <div class="ygo-desc" title="${card.desc}">${card.desc}</div>
+              <div class="ygo-stats">ATK/${card.atk}</div>
+            </div>
+          </div>
+        `;
+        this.ui.handArea.insertAdjacentHTML('beforeend', cardHTML);
+      });
+    }
+
+    playCard(handIndex) {
+      this.currentCard = this.hand[handIndex];
+      this.hand.splice(handIndex, 1);
+      if (this.deck.length === 0) this.initDeck();
+      this.hand.splice(handIndex, 0, this.deck.pop());
+      this.renderHand();
+
+      this.showQuiz();
+    }
+
+    showQuiz() {
+      const qIndex = Math.floor(Math.random() * this.settings.QUESTIONS.length);
+      const qData = this.settings.QUESTIONS[qIndex];
+      
+      this.ui.quizQuestion.textContent = qData.q;
+      
+      const optionsWithMeta = qData.options.map((text, idx) => ({
+        text: text,
+        isCorrect: idx === 0
+      }));
+      const shuffledOptions = this.shuffleArray(optionsWithMeta);
+
+      this.ui.quizOptions.innerHTML = '';
+      shuffledOptions.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option-btn';
+        btn.textContent = opt.text;
+        btn.setAttribute('data-action', 'answer-quiz');
+        btn.setAttribute('data-correct', opt.isCorrect);
+        this.ui.quizOptions.appendChild(btn);
+      });
+
+      this.ui.quizModal.classList.add('show');
+    }
+
+    handleAnswer(isCorrect) {
+      this.ui.quizModal.classList.remove('show');
+
+      if (isCorrect) {
+        this.showCutin('ATTACK!', 'cutin-attack');
+        setTimeout(() => {
+          this.totalDamageDealt += this.currentCard.atk;
+          this.enemyHp -= this.currentCard.atk;
+          if (this.enemyHp <= 0) this.enemyHp = 0;
+          this.playDamageAnim(this.ui.enemyImg);
+          this.updateHpUI();
+          this.checkWinLose();
+        }, 800);
+      } else {
+        this.showCutin('COUNTER!', 'cutin-counter');
+        setTimeout(() => {
+          this.playerHp -= this.settings.ENEMY_ATK;
+          if (this.playerHp <= 0) this.playerHp = 0;
+          this.updateHpUI();
+          this.checkWinLose();
+        }, 800);
+      }
+    }
+
+    showCutin(text, className) {
+      this.ui.cutinOverlay.textContent = text;
+      this.ui.cutinOverlay.className = `cutin-overlay show ${className}`;
+      setTimeout(() => {
+        this.ui.cutinOverlay.classList.remove('show');
+      }, 700);
+    }
+
+    playDamageAnim(element) {
+      element.classList.add('damage-anim');
+      setTimeout(() => {
+        element.classList.remove('damage-anim');
+      }, 300);
+    }
+
+    updateHpUI() {
+      const ePercent = Math.max(0, (this.enemyHp / this.settings.ENEMY_MAX_HP) * 100);
+      this.ui.enemyHpBar.style.width = `${ePercent}%`;
+      this.ui.enemyHpText.textContent = `${this.enemyHp} / ${this.settings.ENEMY_MAX_HP}`;
+
+      const pPercent = Math.max(0, (this.playerHp / this.settings.PLAYER_MAX_HP) * 100);
+      this.ui.playerHpBar.style.width = `${pPercent}%`;
+      this.ui.playerHpText.textContent = `${this.playerHp} / ${this.settings.PLAYER_MAX_HP}`;
+    }
+
+    checkWinLose() {
+      if (this.enemyHp <= 0) {
+        this.endGame(true, "ウイルスを完全に駆除した！");
+      } else if (this.playerHp <= 0) {
+        this.endGame(false, "システムが乗っ取られました...");
+      }
+    }
+
+    shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    endGame(isClear, reasonMsg) {
+      this.isClear = isClear;
+      this.isGameOver = true;
+
+      setTimeout(() => {
+        this.ui.resultTitle.textContent = isClear ? "SYSTEM CLEAR" : "SYSTEM DOWN";
+        this.ui.resultTitle.style.color = isClear ? "#00d0ff" : "#ff3366";
+        
+        const score = this.totalDamageDealt + (isClear ? this.playerHp : 0);
+
+        this.ui.resultMessage.innerHTML = `
+          ${reasonMsg}<br><br>
+          BATTLE SCORE: ${score}
+        `;
+        
+        this.ui.resultScreen.classList.remove('hidden');
+      }, 500);
+    }
+
+    finishGame() {
+      const finalScore = this.totalDamageDealt + (this.isClear ? this.playerHp : 0);
+      
+      window.parent.postMessage({
+        type: 'MINIGAME_END',
+        flags: {
+          minigame_score: finalScore,
+          minigame_clear: this.isClear
+        }
+      }, '*');
+
+      this.destroy();
+    }
+
+    destroy() {
+      this.container.removeEventListener('click', this.boundHandleClick);
+      this.container.innerHTML = '';
+      console.log("CardBattleGame instance destroyed safely.");
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const game = new CardBattleGame('game-container', USER_SETTINGS);
+    game.init();
+  });
+</script>
+</body>
+</html>
