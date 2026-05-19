@@ -647,8 +647,10 @@ class NovelGameEngine {
   startNewGame() {
     this.playSysSe(settings.seStart); 
     this.state.index = 0;
+    this.state.flags = {}; 
+    localStorage.setItem('global_flags', JSON.stringify({})); 
     
-    this.state.flags = {}; this.state.history = []; this.state.logs = []; this.state.charVoices = {}; this.state.currentChapter = ''; this.state.chapterStartData = null;
+    this.state.history = []; this.state.logs = []; this.state.charVoices = {}; this.state.currentChapter = '';
     Object.values(this.charMap).forEach(e => { e.classList.add('hidden'); e.src = ''; e.dataset.charName = ''; });
     
     this.el.bgLayer.style.backgroundImage = ''; this.el.bgLayerNext.style.backgroundImage = ''; this.el.overlay.style.opacity = '0';
@@ -709,7 +711,14 @@ class NovelGameEngine {
     }
 
     if (step.cmd === 'jump') { this.jumpTo(step.to); return; }
-    if (step.cmd) { this.handleCommand(step).then(() => { this.state.index++; this.executeStep(); }); return; }
+    if (step.cmd) { 
+      this.handleCommand(step).then((stop) => { 
+        if (stop) return;
+        this.state.index++; 
+        this.executeStep(); 
+      }); 
+      return; 
+    }
 
     this.displayDialog(step);
   }
@@ -771,6 +780,7 @@ class NovelGameEngine {
             else { this.state.flags[part] = true; }
           });
         } else { this.state.flags[c.text] = true; }
+        localStorage.setItem('global_flags', JSON.stringify(this.state.flags));
         
         this.el.choiceUi.style.display = 'none'; this.state.index = nextIndex; 
         if (c.to) { this.jumpTo(c.to); } else { this.executeStep(); }
@@ -808,6 +818,7 @@ class NovelGameEngine {
           const val = step.text ? parseFloat(step.text) : 1;
           this.state.flags[step.name] = (this.state.flags[step.name] || 0) + val;
         }
+        localStorage.setItem('global_flags', JSON.stringify(this.state.flags));
         break;
       }
       case 'se': {
@@ -965,7 +976,10 @@ class NovelGameEngine {
             if (e.source !== iframe.contentWindow) return;
             if (e.data && e.data.type === 'MINIGAME_END') { 
               clearTimeout(timeout); window.removeEventListener('message', onMessage); container.remove(); 
-              if (e.data.flags) this.state.flags = { ...this.state.flags, ...e.data.flags }; 
+              if (e.data.flags) {
+                this.state.flags = { ...this.state.flags, ...e.data.flags }; 
+                localStorage.setItem('global_flags', JSON.stringify(this.state.flags));
+              }
               this.$('game-menu-bar').classList.remove('ui-hidden');
               resolve(); 
             }
@@ -979,10 +993,11 @@ class NovelGameEngine {
           this.saveAutoSave(this.state.currentChapter + " (クリア)");
         }
         this.endGame(); 
+        return true;
+      }
         break;
       }
     }
-  }
 
   stopVoice() {
     if (this.state.currentVoice) { this.state.currentVoice.pause(); this.state.currentVoice = null; }
@@ -1406,7 +1421,9 @@ class NovelGameEngine {
 
   loadSaveData(data) {
     if (!data) return;
-    this.state.index = data.index; this.state.flags = data.flags || {}; this.state.charVoices = data.charVoices || {}; 
+    this.state.index = data.index; 
+    this.state.flags = JSON.parse(localStorage.getItem('global_flags') || '{}'); 
+    this.state.charVoices = data.charVoices || {}; 
     this.state.currentChapter = data.currentChapter || '';
     this.state.chapterStartData = data.chapterStartData || null;
     this.state.history = []; this.state.logs = []; this.closeSaveLoad(); this.state.prevScreen = 'game-screen';
