@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <!-- ======================================================================
+       Head セクション: メタ情報、Googleフォント、外部CSSの読み込み
+       ====================================================================== -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ノベルゲーム テンプレート (Pro Version)</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Mochiiy+Pop+P+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ======================================================================
+     Game Wrapper: 画面全体を覆い、Canvasのアスペクト比を維持するコンテナ
+     ====================================================================== -->
+<div id="game-wrapper">
+  <div id="game-canvas">
+    
+    <!-- ======================================================================
+         タイトル画面: 起動直後に表示される画面（ロゴ、メニューボタン）
+         ====================================================================== -->
+    <div id="title-screen" class="screen active">
+      <div id="title-bg"></div>
+      <div id="title-logo-container">
+        <img id="title-logo-image" src="" alt="Title Logo" style="display: none;">
+        <div id="title-logo-text">NOVEL GAME</div>
+        <div id="title-sub-text"></div>
+      </div>
+      <div id="title-menu">
+        <button class="title-btn" id="title-btn-start" onclick="app.startNewGame()">START</button>
+        <button class="title-btn" id="continue-btn" onclick="app.openSaveLoad('load')">CONTINUE</button>
+        <button class="title-btn" id="title-btn-system" onclick="app.openSystem()">SYSTEM</button>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         ゲーム本編画面: シナリオが進行するメイン画面
+         ====================================================================== -->
+    <div id="game-screen" class="screen" onclick="app.onDialogClick(event)">
+      <!-- 背景レイヤー (クロスフェード対応) -->
+      <div id="bg-layer"></div>
+      <div id="bg-layer-next"></div>
+      
+      <!-- キャラクター表示レイヤー -->
+      <div id="char-layer">
+        <img id="char-left"   class="char-sprite left   hidden" src="" alt="">
+        <img id="char-center" class="char-sprite center hidden" src="" alt="">
+        <img id="char-right"  class="char-sprite right  hidden" src="" alt="">
+      </div>
+      
+      <!-- 演出レイヤー（パーティクル、暗転オーバーレイ、アイテムポップアップ） -->
+      <canvas id="particle-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4;"></canvas>
+      <div id="overlay"></div>
+      <div id="item-popup" class="hidden"><img id="item-img" src="" alt=""></div>
+      
+      <!-- 選択肢UI -->
+      <div id="choice-ui"></div>
+
+      <!-- テキストダイアログUI (テキストボックス、名前タグ) -->
+      <div id="dialog-ui" class="hidden">
+        <div id="dialog-bg"></div>
+        <div id="name-tag"></div>
+        <div id="dialog-text"></div>
+        <div id="next-arrow"><svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12z"/></svg></div>
+      </div>
+
+      <!-- 演出用オーバーレイ（スキップ中の表示、章間チャプター画面） -->
+      <div id="skip-overlay">SKIP >></div>
+      <div id="chapter-screen" class="hidden"><div id="chapter-text"></div></div>
+
+      <!-- ゲーム内メニューバー（システムボタン群） -->
+      <div id="game-menu-bar">
+        <button class="game-btn" id="menu-toggle-btn" onclick="app.toggleMenuBar()">◀</button>
+        <div id="game-menu-items">
+          <button class="game-btn" id="game-btn-back" onclick="app.goBack()">BACK</button>
+          <button class="game-btn" id="game-btn-log" onclick="app.openLog()">LOG</button>
+          <button class="game-btn" id="btn-auto" onclick="app.toggleAuto()">AUTO</button>
+          <button class="game-btn" id="game-btn-skip" onclick="app.startSkip()">SKIP</button>
+          <button class="game-btn" id="game-btn-save" onclick="app.openSaveLoad('save')">SAVE</button>
+          <button class="game-btn" id="game-btn-load" onclick="app.openSaveLoad('load')">LOAD</button>
+          <button class="game-btn" id="game-btn-menu" onclick="app.openSystem()">MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         システム設定画面 (音量やテキスト速度の設定ポップアップ)
+         ====================================================================== -->
+    <div id="system-screen" class="screen popup-overlay">
+      <div class="system-panel">
+        <div class="system-title">SYSTEM</div>
+        <div class="system-row"><span class="system-label">テキスト速度</span><input type="range" class="system-slider" min="10" max="100" id="text-speed-slider" oninput="settings.textSpeed = parseInt(this.value)"></div>
+        <div class="system-row"><span class="system-label">BGM音量</span><input type="range" class="system-slider" min="0" max="100" id="bgm-slider" oninput="app.setBgmVolume(this.value)"></div>
+        <div class="system-row"><span class="system-label">SE音量</span><input type="range" class="system-slider" min="0" max="100" id="se-slider" oninput="settings.seVolume = this.value/100"></div>
+        <div class="system-row"><span class="system-label">ボイス音量</span><input type="range" class="system-slider" min="0" max="100" id="voice-slider" oninput="app.setVoiceVolume(this.value)"></div>
+        <div class="system-row"><span class="system-label">システム音量</span><input type="range" class="system-slider" min="0" max="100" id="sys-se-slider" oninput="settings.sysSeVolume = this.value/100"></div>
+        <button class="sys-btn system-close-btn" onclick="app.closeSystem()">CLOSE</button>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         セーブ＆ロード画面 (セーブデータ一覧ポップアップ)
+         ====================================================================== -->
+    <div id="save-screen" class="screen popup-overlay">
+      <div class="system-panel" id="save-panel">
+        <div id="save-mode-title">SAVE</div>
+        <div id="save-slots"></div>
+        <div class="save-bottom-actions">
+          <button class="sys-btn" id="save-close-btn" onclick="app.closeSaveLoad()">CLOSE</button>
+          <button id="reset-all-btn" onclick="app.resetAllSaves()" style="display: none;">全データ初期化</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         ログ画面 (過去のテキスト履歴・巻き戻しポップアップ)
+         ====================================================================== -->
+    <div id="log-screen" class="screen popup-overlay">
+      <div class="system-panel" style="width: min(800px, 90%); height: 80vh;">
+        <div class="system-title">LOG</div>
+        <div id="log-list"></div>
+        <button class="sys-btn" style="width: 100%;" onclick="app.closeLog()">CLOSE</button>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         画面切り替え用トランジション＆ローディング
+         ====================================================================== -->
+    <div id="transition-overlay"></div>
+    <div id="loading-overlay">読み込み中<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+    
+  </div>
+</div>
+
+<!-- ======================================================================
+     音声プレイヤー群 (BGM / SE / システム音)
+     ====================================================================== -->
+<audio id="bgm-player" loop></audio>
+<audio id="se-player"></audio>
+<audio id="sys-se-player"></audio>
+
+<!-- ======================================================================
+     JSファイルの読み込み (データ＆メインロジック)
+     ====================================================================== -->
+<script src="scenario.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
