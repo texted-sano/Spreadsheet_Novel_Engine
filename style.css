@@ -1,6 +1,5 @@
 /* ======================================================================
  * 1. CSS変数 (Custom Properties)
- * 色、フォント、影などの基本デザイン設定。JS経由で動的に上書きされます。
  * ====================================================================== */
 :root {
   --bg-dark: #050508;
@@ -43,7 +42,6 @@
 
 /* ======================================================================
  * 2. ベース・レイアウト・キャンバス設定
- * ブラウザのデフォルトスタイルをリセットし、ゲーム画面の拡縮基盤を構成。
  * ====================================================================== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
@@ -63,7 +61,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 /* ======================================================================
  * 3. タイトル画面
- * 背景、ロゴ表示、メニューボタンのアニメーション設定。
  * ====================================================================== */
 #title-screen { background: var(--bg-dark); display: block; opacity: 0; pointer-events: none; transition: opacity 1.5s ease; }
 #title-screen.show { opacity: 1; pointer-events: auto; }
@@ -87,7 +84,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 /* ======================================================================
  * 4. ゲーム本編：背景・キャラクター・演出レイヤー
- * クロスフェード用の背景、キャラクターの立ち位置、暗転レイヤー。
  * ====================================================================== */
 #game-screen { background: #000; }
 #bg-layer, #bg-layer-next { position: absolute; inset: 0; background-size: cover; background-position: center; transition: opacity 0.8s ease; }
@@ -103,7 +99,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 /* ======================================================================
  * 5. 画面効果 (エフェクト・フィルター)
- * 画面揺れ、キャラクターのホップ、セピア化などのCSS演出。
  * ====================================================================== */
 @keyframes fxShake { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 50% { translate: 4px 0; } 75% { translate: -4px 0; } }
 @keyframes fxHop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -40px; } }
@@ -117,7 +112,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 /* ======================================================================
  * 6. 選択肢 UI
- * シナリオ分岐時に表示されるボタンのデザイン。
  * ====================================================================== */
 #choice-ui { position: absolute; inset: 0; z-index: 25; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); transition: opacity 0.3s; }
 
@@ -152,7 +146,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 /* ======================================================================
  * 7. ダイアログ UI (テキストボックス・名前タグ)
- * 本文テキスト、ルビ、進行アイコンのデザイン。
  * ====================================================================== */
 #dialog-ui { position: absolute; inset: 0; z-index: 20; pointer-events: none; transition: opacity 0.4s ease; }
 #dialog-ui.hidden { opacity: 0; pointer-events: none !important; }
@@ -175,7 +168,6 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 
 /* ======================================================================
  * 8. ゲーム内メニューバー
- * セーブやログを開くシステムボタン群。開閉アニメーション設定を含む。
  * ====================================================================== */
 #game-menu-bar { position: absolute; top: 16px; left: 16px; z-index: 30; display: flex; gap: 12px; align-items: center; transition: opacity 0.3s; }
 #game-menu-items { display: flex; gap: 12px; transition: max-width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; overflow: hidden; max-width: 1200px; opacity: 1; padding: 10px; margin: -10px; }    
@@ -196,7 +188,6 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 
 /* ======================================================================
  * 10. システム系ポップアップ (共通UI)
- * 設定、セーブ/ロード、ログ画面の背景やパネル、ボタンのベース設定。
  * ====================================================================== */
 .popup-overlay { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
 .system-panel { width: min(650px, 90%); border: 1px solid var(--panel-border); padding: 40px; background: var(--panel-bg); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
@@ -211,7 +202,6 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 
 /* ======================================================================
  * 11. セーブ・ロード画面 固有スタイル
- * グリッドレイアウトによるスロット一覧表示。
  * ====================================================================== */
 #save-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; max-height: 55vh; overflow-y: auto; padding: 4px 8px 4px 4px; }
 #save-slots::-webkit-scrollbar, #log-list::-webkit-scrollbar { display: block; width: 6px; }
@@ -241,7 +231,6 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 
 /* ======================================================================
  * 12. ログ画面 固有スタイル
- * バックログのリスト表示デザイン。
  * ====================================================================== */
 #log-list { width: 100%; flex: 1; max-height: 60vh; overflow-y: auto; padding: 4px 16px 4px 4px; margin-bottom: 20px; }
 .log-item { margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
@@ -251,7 +240,6 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 
 /* ======================================================================
  * 13. トランジション・ローディング・チャプター演出
- * フェード効果、ロード中アニメーション、章間タイトルのスタイル。
  * ====================================================================== */
 #transition-overlay { position: absolute; inset: 0; background: black; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
 #transition-overlay.fade-in { opacity: 1; pointer-events: all; }
@@ -271,7 +259,6 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 
 /* ======================================================================
  * 14. 特殊ボタン・画像差し替え用クラス
- * スプレッドシート側の設定でボタンが画像に置き換わった際のスタイル。
  * ====================================================================== */
 .title-btn.is-image-btn, .game-btn.is-image-btn {
   color: transparent !important; background-color: transparent !important;
@@ -295,3 +282,75 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 .game-btn.is-common-bg:hover { filter: brightness(1.1); transform: scale(1.05); }
 
 ::-webkit-scrollbar { display: none; }
+
+/* ======================================================================
+ * 15. キャラクター選択 UI
+ * ====================================================================== */
+/* タイトル背景をぼかして敷く */
+#char-select-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--title-bg-url);
+  background-size: cover;
+  background-position: center;
+  filter: blur(15px) brightness(0.4);
+  z-index: -1;
+}
+
+#char-select-cards { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 24px; 
+  justify-content: center; 
+  align-items: center;
+  margin-bottom: 24px; 
+  max-height: 55vh; 
+  overflow-y: auto; 
+  padding: 30px;
+}
+
+.char-card { 
+  width: max(140px, 14cqw); 
+  border: 3px solid transparent; 
+  border-radius: 12px; 
+  background: rgba(0, 0, 0, 0.6); 
+  cursor: pointer; 
+  overflow: hidden; 
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+}
+
+/* 選択されていないカード（暗く・小さくする） */
+#char-select-cards .char-card:not(.selected) {
+  filter: brightness(0.5) grayscale(40%);
+  transform: scale(0.95);
+}
+
+/* 選択されているカード（明るく・大きく・光らせる） */
+#char-select-cards .char-card.selected { 
+  border-color: #ffffff; 
+  background: rgba(255, 255, 255, 0.15); 
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.5); 
+  transform: scale(1.1);
+  z-index: 2;
+}
+
+.char-card-img { 
+  width: 100%; 
+  height: max(180px, 18cqw); 
+  object-fit: contain; 
+}
+
+.char-card-name { 
+  padding: 12px; 
+  font-family: var(--font-main); 
+  font-weight: bold; 
+  font-size: 16px; 
+  color: #ffffff; 
+  text-align: center; 
+  text-shadow: 1px 1px 3px #000000;
+  width: 100%;
+}
