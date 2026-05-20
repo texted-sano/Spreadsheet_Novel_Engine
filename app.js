@@ -1,6 +1,5 @@
 /* ======================================================================
  * Settings & Global Variables
- * ゲームの基本設定、スプレッドシートURL、シナリオや設定の格納用変数を定義します。
  * ====================================================================== */
 const settings = { 
   textSpeed: 40, autoDelay: 2500, bgmVolume: 0.07, seVolume: 0.07, voiceVolume: 0.07, sysSeVolume: 0.07,
@@ -10,18 +9,16 @@ const settings = {
 };
 
 const USER_SETTINGS = { 
-  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbybvhYD9MKidQwf0c3tiNt23qOeQcnksYdLKjC-BGXUXuT0oLsxQ97f4kfNZQO8OZuVow/exec'
+  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbz2RdlSuRsJuECeBpcb81mQQT9NrZIyiDqO9dQt6AU-0DSYAbIYYlC988C_Py-6N06u6g/exec'
 };
 
 let SCENARIO = [ { cmd: 'config', name: 'title_text', text: 'NOVEL GAME' }, { cmd: 'end' } ];
 let CONFIG = [];
 window.app = null;
 
-
 /* ======================================================================
- * DataLoader
- * スプレッドシート（GAS経由）やローカルデータからJSONを取得・パースし、
- * ゲーム設定（CSS変数やインラインスタイル等）を動的に反映します。
+ * Class: DataLoader
+ * JSONデータの取得やゲーム設定の動的反映を行う
  * ====================================================================== */
 class DataLoader {
   async loadGasData(url) {
@@ -359,8 +356,8 @@ class DataLoader {
 }
 
 /* ======================================================================
- * ParticleSystem
- * Canvasを用いた画面上のパーティクル（雪・雨・風など）演出を管理します。
+ * Class: ParticleSystem
+ * Canvasを用いた画面上のパーティクル（雪・雨・風など）演出を管理
  * ====================================================================== */
 class ParticleSystem {
   constructor(canvas) {
@@ -479,9 +476,8 @@ class ParticleSystem {
 }
 
 /* ======================================================================
- * NovelGameEngine
- * シナリオコマンドの解析、テキストのタイプライター表示、画面遷移、
- * セーブ＆ロード機能など、ゲームのメインロジックを管理します。
+ * Class: NovelGameEngine
+ * ノベルゲームのメインロジック（シナリオ進行、演出、UI管理、セーブ）
  * ====================================================================== */
 class NovelGameEngine {
   constructor() {
@@ -493,7 +489,7 @@ class NovelGameEngine {
       saveMode: 'save', flags: {}, history: [], logs: [], uiHidden: false, 
       screenEffect: '', particleType: '', currentVoice: null, bgmFadeTimer: null, 
       charVoices: {}, currentVoiceBlobUrl: null, currentChapter: '',
-      chapterStartData: null
+      chapterStartData: null, currentSrcKey: 'src'
     };
 
     this.el = {
@@ -519,6 +515,14 @@ class NovelGameEngine {
     this.el.bgmPlayer.volume = settings.bgmVolume;
     
     if (window.speechSynthesis) window.speechSynthesis.getVoices();
+  }
+
+  getStepSrc(step) {
+    if (!step) return null;
+    const key = this.state.currentSrcKey || 'src';
+    const val = (step[key] !== undefined && step[key] !== '') ? step[key] : step.src;
+    if (!val) return null;
+    return (step.dir && val) ? `${step.dir.replace(/\/$/, '')}/${val}` : val;
   }
 
   setVoiceVolume(val) { settings.voiceVolume = val / 100; if (this.state.currentVoice) this.state.currentVoice.volume = settings.voiceVolume; }
@@ -604,7 +608,7 @@ class NovelGameEngine {
   }
 
   showScreen(id) {
-    const popups = ['system-screen', 'save-screen', 'log-screen'];
+    const popups = ['system-screen', 'save-screen', 'log-screen', 'char-select-screen'];
     const isPopup = popups.includes(id);
     document.querySelectorAll('.screen').forEach(s => {
       if (s.id === id) { s.classList.add('active'); s.style.display = 'flex'; } 
@@ -663,7 +667,18 @@ class NovelGameEngine {
     this.el.bgmPlayer.pause(); 
     this.state.prevScreen = 'game-screen';
     
-    this.fadeTransition(() => { this.showScreen('game-screen'); this.executeStep(); });
+    // ▼ 保存されているスキン設定を読み込む
+    const savedSrcKey = localStorage.getItem('global_src_key');
+    this.state.currentSrcKey = savedSrcKey || 'src';
+    
+    // ▼ スキンが未選択の場合のみキャラ選択を出す
+    if (window.app.availableSkins && window.app.availableSkins.length > 1 && !savedSrcKey) {
+      this.fadeTransition(() => {
+        this.openCharSelect();
+      });
+    } else {
+      this.fadeTransition(() => { this.showScreen('game-screen'); this.executeStep(); });
+    }
   }
 
   evaluateCondition(condStr) {
@@ -796,7 +811,7 @@ class NovelGameEngine {
   }
 
   async handleCommand(step) {
-    const getPath = (s) => (s.dir && s.src) ? `${s.dir.replace(/\/$/, '')}/${s.src}` : s.src;
+    const getPath = (s) => this.getStepSrc(s); 
     const sceneCmds = ['bg', 'fade', 'hide', 'hideAll', 'chapter'];
     if (sceneCmds.includes(step.cmd)) this.el.dialogUi.classList.add('hidden');
 
@@ -897,7 +912,7 @@ class NovelGameEngine {
         let lookAhead = this.state.index + 1;
         while (SCENARIO[lookAhead] && (SCENARIO[lookAhead].cmd === 'bgm' || SCENARIO[lookAhead].cmd === 'se')) {
           const nextStep = SCENARIO[lookAhead];
-          const nextPath = (nextStep.dir && nextStep.src) ? `${nextStep.dir.replace(/\/$/, '')}/${nextStep.src}` : nextStep.src;
+          const nextPath = this.getStepSrc(nextStep); 
           if (nextStep.cmd === 'bgm') {
             this.fadeBGM(nextPath, true);
           } else if (nextStep.cmd === 'se') {
@@ -920,12 +935,13 @@ class NovelGameEngine {
         if (this.particleSystem) this.particleSystem.stop();
         Object.values(this.charMap).forEach(e => { e.classList.add('hidden'); e.src = ''; e.dataset.charName = ''; Array.from(e.classList).forEach(c => { if(c.startsWith('fx-')) e.classList.remove(c); }); });
         
-        const srcStr = step.src ? String(step.src).toLowerCase() : '';
+        const chapSrc = this.getStepSrc(step); 
+        const srcStr = chapSrc ? String(chapSrc).toLowerCase() : '';
         const isImage = srcStr.endsWith('.png') || srcStr.endsWith('.jpg') || srcStr.endsWith('.jpeg') || srcStr.endsWith('.webp');
-        if (step.src && !isImage) this.fadeBGM(getPath(step), false); 
+        if (chapSrc && !isImage) this.fadeBGM(chapSrc, false); 
         
         const chapScreen = this.$('chapter-screen');
-        if (isImage) { chapScreen.style.background = `url('${getPath(step)}') center/cover no-repeat`; } 
+        if (isImage) { chapScreen.style.background = `url('${chapSrc}') center/cover no-repeat`; } 
         else if (step.color) { chapScreen.style.background = step.color; } 
         else { chapScreen.style.background = '#000'; }
         
@@ -995,9 +1011,8 @@ class NovelGameEngine {
         this.endGame(); 
         return true;
       }
-        break;
-      }
     }
+  }
 
   stopVoice() {
     if (this.state.currentVoice) { this.state.currentVoice.pause(); this.state.currentVoice = null; }
@@ -1057,7 +1072,7 @@ class NovelGameEngine {
     this.state.typing = true; this.el.dialogText.innerHTML = ''; this.el.nextArrow.classList.remove('visible'); 
     this.stopVoice();
     
-    let audioSrc = step.src ? ((step.dir && step.src) ? `${step.dir.replace(/\/$/, '')}/${step.src}` : step.src) : null;
+    let audioSrc = this.getStepSrc(step); 
     let isWebSpeech = false; let webSpeechText = ''; let webSpeechVoiceId = '';
     const currentIndex = this.state.index; 
 
@@ -1204,7 +1219,8 @@ class NovelGameEngine {
       screenEffect: this.state.screenEffect, 
       particleType: this.state.particleType,
       currentChapter: this.state.currentChapter, 
-      chapterStartData: this.state.chapterStartData
+      chapterStartData: this.state.chapterStartData,
+      currentSrcKey: this.state.currentSrcKey
     });
     if (this.state.history.length > 1000) this.state.history.shift();
   }
@@ -1266,6 +1282,7 @@ class NovelGameEngine {
     this.state.charVoices = JSON.parse(JSON.stringify(snap.charVoices || {})); 
     this.state.currentChapter = snap.currentChapter || ''; 
     this.state.chapterStartData = snap.chapterStartData || null;
+    this.state.currentSrcKey = snap.currentSrcKey || 'src';
     this.el.bgLayer.style.backgroundImage = snap.bg;
     if (snap.bgm && this.el.bgmPlayer.src !== snap.bgm) this.fadeBGM(snap.bgm, true); 
     
@@ -1298,6 +1315,7 @@ class NovelGameEngine {
     this.state.index = snap.index; this.state.flags = JSON.parse(JSON.stringify(snap.flags)); this.state.charVoices = JSON.parse(JSON.stringify(snap.charVoices || {}));
     this.state.currentChapter = snap.currentChapter || ''; 
     this.state.chapterStartData = snap.chapterStartData || null;
+    this.state.currentSrcKey = snap.currentSrcKey || 'src';
     this.el.bgLayer.style.backgroundImage = snap.bg;
     if (snap.bgm && this.el.bgmPlayer.src !== snap.bgm) { this.fadeBGM(snap.bgm, true); } else if (!snap.bgm) { this.fadeBGM(''); }
     
@@ -1354,7 +1372,8 @@ class NovelGameEngine {
       label: label, 
       screenEffect: this.state.screenEffect, 
       particleType: this.state.particleType,
-      currentChapter: this.state.currentChapter
+      currentChapter: this.state.currentChapter,
+      currentSrcKey: this.state.currentSrcKey
     };
   }
 
@@ -1426,6 +1445,7 @@ class NovelGameEngine {
     this.state.charVoices = data.charVoices || {}; 
     this.state.currentChapter = data.currentChapter || '';
     this.state.chapterStartData = data.chapterStartData || null;
+    this.state.currentSrcKey = localStorage.getItem('global_src_key') || data.currentSrcKey || 'src';
     this.state.history = []; this.state.logs = []; this.closeSaveLoad(); this.state.prevScreen = 'game-screen';
     
     this.fadeTransition(() => { 
@@ -1460,18 +1480,77 @@ class NovelGameEngine {
     if (confirm("すべてのセーブデータとオートセーブを完全に削除します。\nよろしいですか？")) {
       for (let i = 1; i <= 99; i++) { localStorage.removeItem(`save_slot_${i}`); }
       localStorage.removeItem('save_slot_auto'); localStorage.removeItem('save_auto_list');
-      alert("すべてのセーブデータを削除しました。"); this.renderSaveSlots(this.state.saveMode); this.$('continue-btn').disabled = true;
+      localStorage.removeItem('global_src_key');
+      alert("すべてのセーブデータと設定を削除しました。"); this.renderSaveSlots(this.state.saveMode); this.$('continue-btn').disabled = true;
     }
   }
 
-  openSystem() { this.playSysSe(settings.seClick); this.setPrevScreenForPopup(); this.showScreen('system-screen'); }
+  openSystem() { 
+    this.playSysSe(settings.seClick); 
+    this.setPrevScreenForPopup(); 
+    this.showScreen('system-screen'); 
+  }
   closeSystem() { this.playSysSe(settings.seClick); this.showScreen(this.state.prevScreen); }
 
+  openCharSelect() {
+    this.playSysSe(settings.seClick);
+    const container = this.$('char-select-cards');
+    container.innerHTML = '';
+    
+    if (!this.state.currentSrcKey || !window.app.availableSkins.some(s => s.posKey === this.state.currentSrcKey)) {
+      this.state.currentSrcKey = window.app.availableSkins[0].posKey;
+    }
+
+    if (window.app.availableSkins) {
+      window.app.availableSkins.forEach(skin => {
+        const card = document.createElement('div');
+        card.className = 'char-card' + (this.state.currentSrcKey === skin.posKey ? ' selected' : '');
+        card.innerHTML = `<img class="char-card-img" src="${skin.thumb || ''}" alt="${skin.text}"><div class="char-card-name">${skin.text}</div>`;
+        
+        card.onclick = () => {
+          this.playSysSe(settings.seClick);
+          this.state.currentSrcKey = skin.posKey;
+          container.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+        };
+        container.appendChild(card);
+      });
+    }
+
+    this.showScreen('char-select-screen');
+  }
+
+  startFromCharSelect() {
+    this.playSysSe(settings.seStart || settings.seClick);
+    localStorage.setItem('global_src_key', this.state.currentSrcKey);
+    this.showScreen('game-screen');
+    this.executeStep();
+  }
+
   async preloadGameImages(scenarioList, configList = []) {
-    const getSrc = (s) => (s.dir && s.src) ? `${s.dir.replace(/\/$/, '')}/${s.src}` : s.src;
+    const getSrc = (dir, src) => (dir && src) ? `${dir.replace(/\/$/, '')}/${src}` : src;
     const urlSet = new Set();
-    configList.forEach(c => { if ((c.name === 'title_bg' || c.name === 'title_image') && c.src) urlSet.add(getSrc(c)); });
-    scenarioList.forEach(s => { if ((s.cmd === 'config' && (s.name === 'title_bg' || s.name === 'title_image')) || ['bg', 'show', 'item'].includes(s.cmd)) { if(s.src) urlSet.add(getSrc(s)); } });
+
+    configList.forEach(c => { 
+      if ((c.name === 'title_bg' || c.name === 'title_image' || c.name === 'character_select') && c.src) {
+        urlSet.add(getSrc(c.dir, c.src)); 
+      }
+    });
+
+    const skinKeys = ['src'];
+    if (window.app && window.app.availableSkins) {
+      window.app.availableSkins.forEach(skin => {
+        if (!skinKeys.includes(skin.posKey)) skinKeys.push(skin.posKey);
+      });
+    }
+
+    scenarioList.forEach(s => { 
+      if ((s.cmd === 'config' && (s.name === 'title_bg' || s.name === 'title_image')) || ['bg', 'show', 'item'].includes(s.cmd)) { 
+        skinKeys.forEach(key => {
+          if (s[key]) urlSet.add(getSrc(s.dir, s[key]));
+        });
+      } 
+    });
     
     const loadPromises = Array.from(urlSet).map(url => new Promise((res) => { const img = new Image(); img.onload = res; img.onerror = res; img.src = url; }));
     
@@ -1484,8 +1563,7 @@ class NovelGameEngine {
 
 /* ======================================================================
  * Main Initialization Flow
- * DOM読み込み完了時の初期化処理。データフェッチ、画像のプリロード、
- * タイトル画面の表示を行います。
+ * DOM読み込み時のデータ取得、設定反映、プリロード処理
  * ====================================================================== */
 document.addEventListener('DOMContentLoaded', async () => {
   window.app = new NovelGameEngine();
@@ -1511,6 +1589,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     CONFIG = [...CONFIG, ...inlineConfigs]; 
     SCENARIO = SCENARIO.filter(s => s.cmd !== 'config'); 
   }
+
+  window.app.availableSkins = [];
+  CONFIG.forEach(c => {
+    if (c.name === 'character_select') {
+      window.app.availableSkins.push({
+        text: c.text,
+        posKey: c.pos || 'src',
+        thumb: (c.dir && c.src) ? `${c.dir.replace(/\/$/, '')}/${c.src}` : c.src
+      });
+    }
+  });
 
   dL.applyConfigs(CONFIG); 
   await window.app.preloadGameImages(SCENARIO, CONFIG);
