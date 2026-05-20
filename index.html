@@ -24,7 +24,7 @@
   <div id="game-canvas">
     
     <!-- ======================================================================
-         タイトル画面: 起動直後に表示される画面（ロゴ、メニューボタン）
+         タイトル画面
          ====================================================================== -->
     <div id="title-screen" class="screen active">
       <div id="title-bg"></div>
@@ -41,29 +41,24 @@
     </div>
 
     <!-- ======================================================================
-         ゲーム本編画面: シナリオが進行するメイン画面
+         ゲーム本編画面
          ====================================================================== -->
     <div id="game-screen" class="screen" onclick="app.onDialogClick(event)">
-      <!-- 背景レイヤー (クロスフェード対応) -->
       <div id="bg-layer"></div>
       <div id="bg-layer-next"></div>
       
-      <!-- キャラクター表示レイヤー -->
       <div id="char-layer">
         <img id="char-left"   class="char-sprite left   hidden" src="" alt="">
         <img id="char-center" class="char-sprite center hidden" src="" alt="">
         <img id="char-right"  class="char-sprite right  hidden" src="" alt="">
       </div>
       
-      <!-- 演出レイヤー（パーティクル、暗転オーバーレイ、アイテムポップアップ） -->
       <canvas id="particle-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4;"></canvas>
       <div id="overlay"></div>
       <div id="item-popup" class="hidden"><img id="item-img" src="" alt=""></div>
       
-      <!-- 選択肢UI -->
       <div id="choice-ui"></div>
 
-      <!-- テキストダイアログUI (テキストボックス、名前タグ) -->
       <div id="dialog-ui" class="hidden">
         <div id="dialog-bg"></div>
         <div id="name-tag"></div>
@@ -71,11 +66,9 @@
         <div id="next-arrow"><svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12z"/></svg></div>
       </div>
 
-      <!-- 演出用オーバーレイ（スキップ中の表示、章間チャプター画面） -->
       <div id="skip-overlay">SKIP >></div>
       <div id="chapter-screen" class="hidden"><div id="chapter-text"></div></div>
 
-      <!-- ゲーム内メニューバー（システムボタン群） -->
       <div id="game-menu-bar">
         <button class="game-btn" id="menu-toggle-btn" onclick="app.toggleMenuBar()">◀</button>
         <div id="game-menu-items">
@@ -91,7 +84,7 @@
     </div>
 
     <!-- ======================================================================
-         システム設定画面 (音量やテキスト速度の設定ポップアップ)
+         システム設定画面
          ====================================================================== -->
     <div id="system-screen" class="screen popup-overlay">
       <div class="system-panel">
@@ -101,12 +94,24 @@
         <div class="system-row"><span class="system-label">SE音量</span><input type="range" class="system-slider" min="0" max="100" id="se-slider" oninput="settings.seVolume = this.value/100"></div>
         <div class="system-row"><span class="system-label">ボイス音量</span><input type="range" class="system-slider" min="0" max="100" id="voice-slider" oninput="app.setVoiceVolume(this.value)"></div>
         <div class="system-row"><span class="system-label">システム音量</span><input type="range" class="system-slider" min="0" max="100" id="sys-se-slider" oninput="settings.sysSeVolume = this.value/100"></div>
+        
         <button class="sys-btn system-close-btn" onclick="app.closeSystem()">CLOSE</button>
       </div>
     </div>
 
     <!-- ======================================================================
-         セーブ＆ロード画面 (セーブデータ一覧ポップアップ)
+         キャラクター選択画面 (スキン切り替えポップアップ)
+         ====================================================================== -->
+    <div id="char-select-screen" class="screen popup-overlay">
+      <div class="system-panel" style="width: fit-content; min-width: min(400px, 90%);">
+        <div class="system-title">CHARACTER SELECT</div>
+        <div id="char-select-cards"></div>
+        <button class="sys-btn system-close-btn" id="char-select-start-btn" onclick="app.startFromCharSelect()">はじめる</button>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         セーブ＆ロード画面
          ====================================================================== -->
     <div id="save-screen" class="screen popup-overlay">
       <div class="system-panel" id="save-panel">
@@ -120,7 +125,7 @@
     </div>
 
     <!-- ======================================================================
-         ログ画面 (過去のテキスト履歴・巻き戻しポップアップ)
+         ログ画面
          ====================================================================== -->
     <div id="log-screen" class="screen popup-overlay">
       <div class="system-panel" style="width: min(800px, 90%); height: 80vh;">
@@ -140,14 +145,14 @@
 </div>
 
 <!-- ======================================================================
-     音声プレイヤー群 (BGM / SE / システム音)
+     音声プレイヤー群
      ====================================================================== -->
 <audio id="bgm-player" loop></audio>
 <audio id="se-player"></audio>
 <audio id="sys-se-player"></audio>
 
 <!-- ======================================================================
-     JSファイルの読み込み (データ＆メインロジック)
+     JSファイルの読み込み
      ====================================================================== -->
 <script src="scenario.js"></script>
 <script src="app.js"></script>
