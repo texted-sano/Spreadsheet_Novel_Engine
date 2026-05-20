@@ -635,6 +635,7 @@ class NovelGameEngine {
   }
 
   toggleMenuBar() { 
+    if (this.state.isSkip) this.stopSkip();
     this.playSysSe(settings.seClick); 
     this.$('game-menu-items').classList.toggle('collapsed'); 
     this.$('menu-toggle-btn').classList.toggle('closed'); 
@@ -1005,9 +1006,6 @@ class NovelGameEngine {
         break;
       }
       case 'end': {
-        if (this.state.currentChapter) {
-          this.saveAutoSave(this.state.currentChapter + " (クリア)");
-        }
         this.endGame(); 
         return true;
       }
@@ -1155,6 +1153,7 @@ class NovelGameEngine {
   onDialogClick(e) { 
     if (e && e.target.closest('button')) return; 
     if (this.state.uiHidden || this.el.choiceUi.style.display === 'flex') return; 
+    if (this.state.isSkip) this.stopSkip();
     this.playSysSe(settings.seClick); 
     if (this.state.typing) { this.stopTyping(); this.finishTyping(); } else { this.advanceStory(); } 
   }
@@ -1167,7 +1166,10 @@ class NovelGameEngine {
   }
 
   startSkip() { 
-    this.playSysSe(settings.seClick); this.state.isSkip = true; this.$('skip-overlay').style.display = 'block'; 
+    if (this.state.isSkip) return;
+    this.playSysSe(settings.seClick); 
+    this.state.isSkip = true; 
+    this.$('skip-overlay').style.display = 'block'; 
     this.state.skipTimer = setInterval(() => { 
       if (this.el.choiceUi.style.display === 'flex') { this.stopSkip(); } 
       else if (this.state.index < SCENARIO.length) { 
@@ -1339,6 +1341,7 @@ class NovelGameEngine {
   setPrevScreenForPopup() { const active = document.querySelector('.screen.active:not(.popup-overlay)')?.id; if (active) this.state.prevScreen = active; }
 
   openLog() {
+    if (this.state.isSkip) this.stopSkip();
     this.playSysSe(settings.seClick); this.setPrevScreenForPopup();
     const container = this.$('log-list'); container.innerHTML = '';
     this.state.logs.forEach(l => {
@@ -1350,7 +1353,8 @@ class NovelGameEngine {
   closeLog() { this.playSysSe(settings.seClick); this.showScreen(this.state.prevScreen); }
 
   openSaveLoad(mode) { 
-    this.playSysSe(settings.seClick); this.setPrevScreenForPopup(); this.state.saveMode = mode; 
+    if (this.state.isSkip) this.stopSkip();
+    this.playSysSe(settings.seClick); this.setPrevScreenForPopup(); 
     this.$('save-mode-title').textContent = mode.toUpperCase(); this.renderSaveSlots(mode); this.showScreen('save-screen'); 
   }
   closeSaveLoad() { this.playSysSe(settings.seClick); this.showScreen(this.state.prevScreen); }
@@ -1486,6 +1490,7 @@ class NovelGameEngine {
   }
 
   openSystem() { 
+    if (this.state.isSkip) this.stopSkip();
     this.playSysSe(settings.seClick); 
     this.setPrevScreenForPopup(); 
     this.showScreen('system-screen'); 
