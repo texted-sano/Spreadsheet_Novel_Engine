@@ -9,7 +9,7 @@ const settings = {
 };
 
 const USER_SETTINGS = { 
-  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbysJ1nsqeBRFCYbxeopZ_OR_huDIyDXv1PBOnzMu_Ah/dev'
+  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbybvhYD9MKidQwf0c3tiNt23qOeQcnksYdLKjC-BGXUXuT0oLsxQ97f4kfNZQO8OZuVow/exec'
 };
 
 let SCENARIO = [ { cmd: 'config', name: 'title_text', text: 'NOVEL GAME' }, { cmd: 'end' } ];
