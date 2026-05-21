@@ -172,9 +172,30 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 #game-menu-bar { position: absolute; top: 16px; left: 16px; z-index: 30; display: flex; gap: 12px; align-items: center; transition: opacity 0.3s; }
 #game-menu-items { display: flex; gap: 12px; transition: max-width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; overflow: hidden; max-width: 1200px; opacity: 1; padding: 10px; margin: -10px; }    
 #game-menu-items.collapsed { max-width: 0; opacity: 0; pointer-events: none; margin-left: -12px; }
-.game-btn { width: max(36px, 3.5cqw); height: max(36px, 3.5cqw); border-radius: 50%; font-family: var(--font-ui); font-size: max(9px, 0.8cqw); color: var(--game-btn-text); background: var(--game-btn-bg); border: 1px solid var(--game-btn-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; backdrop-filter: blur(4px); flex-shrink: 0; text-shadow: var(--text-outline); }
-.game-btn:hover, .game-btn.on { color: var(--main-color); border-color: var(--main-color); filter: brightness(0.9); }
-#menu-toggle-btn { transition: transform 0.4s ease, background 0.2s, border-color 0.2s; }
+
+.game-btn { 
+  width: max(36px, 3.5cqw); 
+  height: max(36px, 3.5cqw); 
+  border-radius: 6px;
+  font-family: var(--font-ui); 
+  font-size: max(9px, 0.8cqw); 
+  color: var(--game-btn-text); 
+  background: var(--game-btn-bg); 
+  border: 1px solid var(--game-btn-border); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  cursor: pointer; 
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  backdrop-filter: blur(4px); 
+  flex-shrink: 0; 
+  text-shadow: var(--text-outline); 
+}
+
+.game-btn:hover { transform: scale(1.1); }
+.game-btn.on { border-color: var(--main-color); }
+
+}#menu-toggle-btn { transition: transform 0.4s ease, background 0.2s, border-color 0.2s; }
 #menu-toggle-btn.closed { transform: rotate(180deg); }
 #skip-overlay { display: none; position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 40; font-size: 14px; color: #fff; background: rgba(0,0,0,0.7); padding: 4px 16px; border: 1px solid rgba(255,255,255,0.3); transition: opacity 0.3s; }
 
@@ -323,19 +344,29 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   align-items: center; 
 }
 
-/* 選択されていないカード（暗く・小さくする） */
+/* 選択されていないカード */
 #char-select-cards .char-card:not(.selected) {
   filter: brightness(0.5) grayscale(40%);
   transform: scale(0.95);
 }
 
-/* 選択されているカード（明るく・大きく・光らせる） */
+/* 選択されているカード */
 #char-select-cards .char-card.selected { 
-  border-color: #ffffff; 
+  border-color: var(--btn-border);
   background: rgba(255, 255, 255, 0.15); 
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.5); 
   transform: scale(1.1);
   z-index: 2;
+}
+
+#char-select-screen .system-title {
+  font-size: max(28px, 3cqw);
+  margin-bottom: 32px;
+}
+
+#char-select-start-btn {
+  font-size: max(20px, 2cqw) !important;
+  border: 3px solid var(--btn-border) !important;
+  padding: 16px 32px !important;
 }
 
 .char-card-img { 
@@ -349,8 +380,8 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   font-family: var(--font-main); 
   font-weight: bold; 
   font-size: 16px; 
-  color: #ffffff; 
+  color: var(--ui-text-main);
   text-align: center; 
-  text-shadow: 1px 1px 3px #000000;
+  text-shadow: none;
   width: 100%;
 }
