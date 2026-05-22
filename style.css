@@ -128,8 +128,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   cursor: pointer; 
   transition: 0.2s; 
   text-align: left; 
-  letter-spacing: normal !important;
-  display: block; 
+  letter-spacing: 0.05em; 
+  display: flex; 
+  align-items: center; 
+  justify-content: flex-start; 
 }
 .choice-btn ruby { position: relative; }
 .choice-btn rt { 
@@ -155,30 +157,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 #dialog-text { font-family: var(--font-main); font-size: max(15px, 1.6cqw); font-weight: 400; line-height: 1.9; color: var(--text-main); letter-spacing: 0.05em; white-space: pre-wrap; word-break: break-all; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); position: absolute; top: 81%; left: 8%; right: 8%; pointer-events: auto; }
 
-ruby { 
-  display: inline-flex !important;
-  flex-direction: column-reverse !important; /* 下に漢字、上にルビを配置 */
-  align-items: center !important;            /* 中央揃え */
-  vertical-align: text-bottom !important;     /* ベースラインの調整 */
-  letter-spacing: normal !important;
-  text-indent: 0 !important;
-  border: none !important;
-  margin: 0 0.05em !important;
-  padding: 0 !important;
-}
-rt { 
-  display: block !important;                  /* Safariのルビ自動幅計算を無効化 */
-  font-size: 0.4em !important;                /* 視認性の良いサイズに微調整 */
-  line-height: 1.1 !important;
-  letter-spacing: normal !important;
-  text-align: center !important;
-  margin: 0 0 0.15em 0 !important;            /* 漢字とルビの間の隙間をここで調整 */
-  padding: 0 !important;
-  width: max-content !important;
-}
-#dialog-text ruby, .choice-btn ruby { 
-  letter-spacing: normal !important; 
-}
+ruby { ruby-align: center; text-align: center; }
+rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line-height: 1; }
+#dialog-text ruby, .choice-btn ruby { letter-spacing: 0; margin-right: 0.05em; }
 
 #next-arrow { position: absolute; bottom: 20px; right: 40px; width: 24px; height: 24px; opacity: 0; animation: arrowBounce 1s ease-in-out infinite; pointer-events: auto; }
 #next-arrow.visible { opacity: 1; }
@@ -295,7 +276,6 @@ rt {
 #chapter-screen.hidden { display: none !important; }
 #chapter-text { width: 100%; padding-left: 0.3em; font-size: max(24px, 4cqw); color: var(--ui-text-main); letter-spacing: 0.3em; text-align: center; line-height: 1.6; word-break: break-word; }
 #chapter-text ruby { letter-spacing: 0; margin-right: 0.3em; }
-#chapter-text rt {font-size: 0.28em; }
 @keyframes chapterFadeInOut { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ======================================================================
