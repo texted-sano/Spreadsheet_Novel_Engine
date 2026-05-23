@@ -385,3 +385,39 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   text-shadow: none;
   width: 100%;
 }
+
+/* ======================================================================
+ * 16. iPad 専用ルビバグ回避 CSS (アプローチB)
+ * WebKitの拡大計算バグを防ぐため、可変サイズ(cqw)から固定pxに変更します。
+ * ====================================================================== */
+.is-ipad #dialog-text {
+  font-size: 18px !important;               /* 通常会話文の文字サイズを固定 */
+}
+.is-ipad #dialog-text rt {
+  font-size: 8px !important;                /* 通常ルビサイズを固定 */
+  position: relative !important;
+  top: -4px !important;                     /* 離れすぎを防ぐため、下に4px引き戻す */
+}
+
+.is-ipad .choice-btn {
+  font-size: 18px !important;               /* 選択肢ボタンの文字サイズを固定 */
+  letter-spacing: normal !important;        /* 文字引き裂かれを防ぐためリセット */
+}
+.is-ipad .choice-btn ruby {
+  letter-spacing: normal !important;
+}
+.is-ipad .choice-btn rt {
+  font-size: 8px !important;                /* 選択肢ルビサイズを固定 */
+  position: relative !important;
+  top: -4px !important;                     /* 選択肢ルビを引き戻す */
+  letter-spacing: normal !important;
+}
+
+.is-ipad #chapter-text {
+  font-size: 32px !important;               /* 章タイトルの文字サイズを固定 */
+}
+.is-ipad #chapter-text rt {
+  font-size: 11px !important;               /* 章タイトルルビサイズを固定 */
+  position: relative !important;
+  top: -6px !important;                     /* 大きな文字用に戻す量を調整 */
+}
