@@ -387,37 +387,64 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 /* ======================================================================
- * 16. iPad 専用ルビバグ回避 CSS (アプローチB)
- * WebKitの拡大計算バグを防ぐため、可変サイズ(cqw)から固定pxに変更します。
+ * iPad専用 ルビ手動微調整用CSS
+ * iPadの実機画面を見ながら、ここの「px」の数値を書き換えて微調整してください。
  * ====================================================================== */
+
+/* --------------------------------------------------
+ * 1. 会話文（メッセージウィンドウ）のルビ調整
+ * -------------------------------------------------- */
 .is-ipad #dialog-text {
-  font-size: 18px !important;               /* 通常会話文の文字サイズを固定 */
+  font-size: 18px !important;                 /* 会話の文字サイズ */
 }
 .is-ipad #dialog-text rt {
-  font-size: 8px !important;                /* 通常ルビサイズを固定 */
+  font-size: 8px !important;                  /* ルビのサイズ（ルビ1個分 = 8px） */
   position: relative !important;
-  top: -4px !important;                     /* 離れすぎを防ぐため、下に4px引き戻す */
+  
+  /* ▼【上下調整】プラス値で下へ、マイナス値で上へ（初期値: ルビ2個分 = 16px） */
+  top: 16px !important; 
+  
+  /* ▼【左右調整】プラス値で右へ、マイナス値で左へ */
+  left: 0px !important; 
 }
 
+
+/* --------------------------------------------------
+ * 2. 選択肢ボタン（choice）のルビ調整
+ * -------------------------------------------------- */
 .is-ipad .choice-btn {
-  font-size: 18px !important;               /* 選択肢ボタンの文字サイズを固定 */
-  letter-spacing: normal !important;        /* 文字引き裂かれを防ぐためリセット */
+  font-size: 18px !important;                 /* 選択肢の文字サイズ */
+  letter-spacing: normal !important;          /* ズレ防止のため文字間隔をリセット */
 }
 .is-ipad .choice-btn ruby {
   letter-spacing: normal !important;
 }
 .is-ipad .choice-btn rt {
-  font-size: 8px !important;                /* 選択肢ルビサイズを固定 */
+  font-size: 8px !important;                  /* ルビのサイズ（ルビ1個分 = 8px） */
   position: relative !important;
-  top: -4px !important;                     /* 選択肢ルビを引き戻す */
   letter-spacing: normal !important;
+  
+  /* ▼【上下調整】プラス値で下へ、マイナス値で上へ */
+  top: 0px !important; 
+  
+  /* ▼【左右調整】プラス値で右へ、マイナス値で左へ（初期値: ルビ2個分 = 16px） */
+  left: 16px !important; 
 }
 
+
+/* --------------------------------------------------
+ * 3. 章タイトル（chapter）のルビ調整
+ * -------------------------------------------------- */
 .is-ipad #chapter-text {
-  font-size: 32px !important;               /* 章タイトルの文字サイズを固定 */
+  font-size: 32px !important;                 /* 章タイトルの文字サイズ */
 }
 .is-ipad #chapter-text rt {
-  font-size: 11px !important;               /* 章タイトルルビサイズを固定 */
+  font-size: 11px !important;                 /* ルビのサイズ（ルビ1個分 = 11px） */
   position: relative !important;
-  top: -6px !important;                     /* 大きな文字用に戻す量を調整 */
+  
+  /* ▼【上下調整】プラス値で下へ、マイナス値で上へ */
+  top: 0px !important; 
+  
+  /* ▼【左右調整】プラス値で右へ、マイナス値で左へ */
+  left: 0px !important; 
 }
