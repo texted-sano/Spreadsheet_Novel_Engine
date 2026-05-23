@@ -387,7 +387,9 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 /* ======================================================================
- * iPad専用 テキスト＆ルビ上下位置 手動微調整用CSS
+ * iPad専用 テキスト＆ルビ位置 手動微調整用CSS (ガクつき完全防止版)
+ * ルビの占有高さを「0」にすることで、文字が出現した時のガクつきを100%防ぎます。
+ * さらに、ルビを手動でミリ単位で自由に動かせるようになります。
  * ====================================================================== */
 
 /* --------------------------------------------------
@@ -399,19 +401,27 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   letter-spacing: 0.05em !important;          /* 会話文の文字間隔 */
   
   /* 会話文全体の表示位置（ top: 81%, left: 8% ） */
-  top: 78% !important;                        
+  top: 81% !important;                        
   left: 8% !important;
 }
 
 .is-ipad #dialog-text rt {
-  font-size: 8px !important;
-  position: static !important;
-  transform: none !important;
-  padding: 0 !important;
+  font-size: 8px !important;                  /* ルビの文字サイズ */
   
-  /* ▼【会話文ルビの上下位置調整】 
-     プラス値（例: 4px）で上へ離れ、マイナス値（例: -3px）で下（漢字）へ近づきます */
-  margin-bottom: -5px !important; 
+  /* ▼【ガクつき防止 ＆ 強制固定解除ハック】 */
+  height: 0 !important;                       /* 高さを0にしてガクつきを防ぐ */
+  line-height: 0 !important;                  /* 高さを0にしてガクつきを防ぐ */
+  display: block !important;                  /* 独立要素にして手動での移動を許可する */
+  position: relative !important;
+  
+  /* ▼【ルビの上下左右位置の調整】（初期値: 上に12px戻す / 左右は0px） */
+  /* ルビをさらに「上」に離したい場合は、-12px を -16px などに増やしてください */
+  /* ルビを「下」に近づけたい場合は、-12px を -8px などに減らしてください */
+  top: -12px !important; 
+  left: 0px !important;
+  
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 
@@ -422,37 +432,41 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   font-size: 18px !important;                 /* 選択肢の文字サイズ */
   letter-spacing: normal !important;          
   
-  /* 左右パディングを完全に0にして大ズレバグを防止 */
+  /* 左右パディングを0にして大ズレバグを防止 */
   padding-left: 0 !important;               
   padding-right: 0 !important;               
   padding-top: 20px !important;               
   padding-bottom: 20px !important;               
   
-  text-align: center !important; 
+  text-align: left !important; /* 左寄せに戻します */
   display: block;
 }
 
-  margin-left: 40px !important;                 
-  text-align: left !important;
-}
-
-/* 選択肢のテキスト全体を右にずらしたい場合はここを調整します */
+/* 選択肢のテキスト全体の左マージン */
 .is-ipad .choice-btn span {
   display: inline-block !important;
-  margin-left: 0px !important;                /* 文字を右へずらす量（ルビも一緒に動きます） */
+  margin-left: 40px !important;                /* 文字をボタンの左端からずらす余白 */
   text-align: left !important;
 }
 
 .is-ipad .choice-btn rt {
   font-size: 8px !important;
-  position: static !important;
-  transform: none !important;
-  padding: 0 !important;
   letter-spacing: normal !important;
   
-  /* ▼【選択肢ルビの上下位置調整】
-     プラス値（例: 4px）で上へ離れ、マイナス値（例: -3px）で下（漢字）へ近づきます */
-  margin-bottom: -5px !important; 
+  /* ▼【ガクつき防止 ＆ 強制固定解除ハック】 */
+  height: 0 !important;
+  line-height: 0 !important;
+  display: block !important;
+  position: relative !important;
+  
+  /* ▼【選択肢ルビの上下左右位置の調整】 */
+  /* 上に12px浮かせ、右に0pxずらした位置を初期値にしています */
+  /* 右にずらしたい場合は、left: 0px を left: 10px のようにプラスしてください */
+  top: -12px !important; 
+  left: 0px !important;
+  
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 
@@ -465,12 +479,18 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 .is-ipad #chapter-text rt {
-  font-size: 11px !important;
-  position: static !important;
-  transform: none !important;
-  padding: 0 !important;
+  font-size: 11px !important;                 /* 章タイトルのルビサイズ */
   
-  /* ▼【章タイトルルビの上下位置調整】
-     プラス値（例: 6px）で上へ離れ、マイナス値（例: -4px）で下（漢字）へ近づきます */
-  margin-bottom: -7px !important; 
+  /* ▼【ガクつき防止 ＆ 強制固定解除ハック】 */
+  height: 0 !important;
+  line-height: 0 !important;
+  display: block !important;
+  position: relative !important;
+  
+  /* ▼【章タイトルルビの上下左右位置の調整】 */
+  top: -16px !important; 
+  left: 0px !important;
+  
+  margin: 0 !important;
+  padding: 0 !important;
 }
