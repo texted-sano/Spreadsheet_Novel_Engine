@@ -404,7 +404,7 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   
   /* ▼【会話文全体の表示位置】 （初期値: top: 81%, left: 8%） */
   /* 数値を増やすと下へ、減らすと上へ動きます */
-  top: 81% !important;                        
+  top: 79% !important;                        
   left: 8% !important;
 }
 
@@ -430,7 +430,7 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   /* ▼【選択肢テキストの表示位置（内側余白）】 */
   /* padding-topを増やすとテキスト全体が下へ、padding-leftを増やすと右へ動きます */
   padding-top: 20px !important;               
-  padding-left: 24px !important;              
+  padding-left: 22px !important;              
   
   display: block;
 }
