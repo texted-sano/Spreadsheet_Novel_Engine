@@ -411,7 +411,7 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   
   /* ▼【会話文ルビの上下位置調整】 
      プラス値（例: 4px）で上へ離れ、マイナス値（例: -3px）で下（漢字）へ近づきます */
-  margin-bottom: -5px !important; 
+  margin-bottom: -20px !important; 
 }
 
 
@@ -452,7 +452,7 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   
   /* ▼【選択肢ルビの上下位置調整】
      プラス値（例: 4px）で上へ離れ、マイナス値（例: -3px）で下（漢字）へ近づきます */
-  margin-bottom: -5px !important; 
+  margin-bottom: -20px !important; 
 }
 
 
@@ -472,5 +472,5 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   
   /* ▼【章タイトルルビの上下位置調整】
      プラス値（例: 6px）で上へ離れ、マイナス値（例: -4px）で下（漢字）へ近づきます */
-  margin-bottom: -7px !important; 
+  margin-bottom: -20px !important; 
 }
