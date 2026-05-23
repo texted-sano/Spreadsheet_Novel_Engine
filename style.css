@@ -387,84 +387,90 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 /* ======================================================================
- * 15. iPad専用 テキスト＆ルビ自動位置 最終安定版（完全復元）
+ * iPad専用 テキスト＆ルビ上下位置 手動微調整用CSS
  * ====================================================================== */
 
 /* --------------------------------------------------
- * 1. 会話文（メッセージウィンドウ）の調整
+ * 1. 会話文（メッセージウィンドウ）のテキスト＆ルビ調整
  * -------------------------------------------------- */
 .is-ipad #dialog-text {
   font-family: var(--font-main);
   font-size: 18px !important;                 /* 会話の文字サイズ */
-  line-height: 2.2 !important;                
+  letter-spacing: 0.05em !important;          /* 会話文の文字間隔 */
+  
+  /* 会話文全体の表示位置（ top: 81%, left: 8% ） */
   top: 81% !important;                        
   left: 8% !important;
 }
 
-/* 漢字の下端を基準に固定し、ブレを防ぐ */
-.is-ipad #dialog-text ruby,
-.is-ipad .choice-btn ruby {
-  vertical-align: bottom !important;          
-}
-
-/* 会話のルビ（元の自動配置のまま維持） */
 .is-ipad #dialog-text rt {
   font-size: 8px !important;
   position: static !important;
   transform: none !important;
-  margin: 0 !important;
   padding: 0 !important;
+  
+  /* ▼【会話文ルビの上下位置調整】 
+     プラス値（例: 4px）で上へ離れ、マイナス値（例: -3px）で下（漢字）へ近づきます */
+  margin-bottom: -5px !important; 
 }
 
 
 /* --------------------------------------------------
- * 2. 選択肢ボタン（choice）の調整
+ * 2. 選択肢ボタン（choice）のテキスト＆ルビ調整
  * -------------------------------------------------- */
 .is-ipad .choice-btn {
   font-size: 18px !important;                 /* 選択肢の文字サイズ */
   letter-spacing: normal !important;          
   
-  /* 左右パディングを0にして大ズレバグを完全に防止 */
+  /* 左右パディングを完全に0にして大ズレバグを防止 */
   padding-left: 0 !important;               
   padding-right: 0 !important;               
   padding-top: 20px !important;               
   padding-bottom: 20px !important;               
   
-  text-align: left !important;                /* 左寄せ */
+  text-align: center !important; 
   display: block;
 }
 
-/* 選択肢のテキスト全体の左マージン */
-.is-ipad .choice-btn span {
-  display: inline-block !important;
-  margin-left: 40px !important;                /* 40pxの美しい左インデント */
+  margin-left: 40px !important;                 
   text-align: left !important;
 }
 
-/* 選択肢のルビ（元の自動配置のまま維持） */
+/* 選択肢のテキスト全体を右にずらしたい場合はここを調整します */
+.is-ipad .choice-btn span {
+  display: inline-block !important;
+  margin-left: 0px !important;                /* 文字を右へずらす量（ルビも一緒に動きます） */
+  text-align: left !important;
+}
+
 .is-ipad .choice-btn rt {
   font-size: 8px !important;
   position: static !important;
   transform: none !important;
   padding: 0 !important;
-  margin: 0 !important;
   letter-spacing: normal !important;
+  
+  /* ▼【選択肢ルビの上下位置調整】
+     プラス値（例: 4px）で上へ離れ、マイナス値（例: -3px）で下（漢字）へ近づきます */
+  margin-bottom: -5px !important; 
 }
 
 
 /* --------------------------------------------------
- * 3. 章タイトル（chapter）の調整
+ * 3. 章タイトル（chapter）のテキスト＆ルビ調整
  * -------------------------------------------------- */
 .is-ipad #chapter-text {
   font-size: 32px !important;                 /* 章タイトルの文字サイズ */
   letter-spacing: 0.3em !important;           /* 文字間隔 */
 }
 
-/* 章タイトルのルビ（元の自動配置のまま維持） */
 .is-ipad #chapter-text rt {
   font-size: 11px !important;
   position: static !important;
   transform: none !important;
   padding: 0 !important;
-  margin: 0 !important;
+  
+  /* ▼【章タイトルルビの上下位置調整】
+     プラス値（例: 6px）で上へ離れ、マイナス値（例: -4px）で下（漢字）へ近づきます */
+  margin-bottom: -7px !important; 
 }
