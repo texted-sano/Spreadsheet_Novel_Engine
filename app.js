@@ -9,7 +9,7 @@ const settings = {
 };
 
 const USER_SETTINGS = { 
-  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbybvhYD9MKidQwf0c3tiNt23qOeQcnksYdLKjC-BGXUXuT0oLsxQ97f4kfNZQO8OZuVow/exec'
+  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbz2RdlSuRsJuECeBpcb81mQQT9NrZIyiDqO9dQt6AU-0DSYAbIYYlC988C_Py-6N06u6g/exec'
 };
 
 let SCENARIO = [ { cmd: 'config', name: 'title_text', text: 'NOVEL GAME' }, { cmd: 'end' } ];
@@ -851,7 +851,15 @@ class NovelGameEngine {
       }
       case 'item': {
         this.$('item-img').src = getPath(step); this.$('item-popup').classList.remove('hidden');
-        await new Promise(r => { const popup = this.$('item-popup'); popup.onclick = () => { popup.classList.add('hidden'); popup.onclick = null; r(); }; }); 
+        await new Promise(r => { 
+          const popup = this.$('item-popup'); 
+          popup.onclick = (e) => {
+            if (e) e.stopPropagation();
+            popup.classList.add('hidden'); 
+            popup.onclick = null; 
+            r(); 
+          }; 
+        }); 
         break;
       }
       case 'show': {
