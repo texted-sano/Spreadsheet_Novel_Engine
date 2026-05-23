@@ -387,55 +387,48 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 /* ======================================================================
- * iPad専用 テキスト＆ルビ自動位置 最終安定版
- * 漢字の下部を基準に固定することで、文字が出現した際のガクつき（ブレ）を防ぎます。
- * 余計なハックを撤去し、ルビを漢字の真上の最も美しい位置に自動配置します。
+ * 15. iPad専用 テキスト＆ルビ自動位置 最終安定版（完全復元）
  * ====================================================================== */
 
 /* --------------------------------------------------
- * 1. 会話文（メッセージウィンドウ）のテキスト＆ルビ調整
+ * 1. 会話文（メッセージウィンドウ）の調整
  * -------------------------------------------------- */
 .is-ipad #dialog-text {
   font-family: var(--font-main);
   font-size: 18px !important;                 /* 会話の文字サイズ */
-  
-  /* ▼ 1. 行間を広く確保し、さらに上部に20pxのパディングをあらかじめ作っておくことで、 */
-  /*    ルビ出現時の「ガクッと下がるブレ」を100%完全に防止します */
   line-height: 2.2 !important;                
-  padding-top: 20px !important;               
-  
-  /* ▼ 2. 上部にパディング（20px）を作った分、開始位置を少し上（81% ➡ 79%）に引き上げます */
-  top: 79% !important;                        
+  top: 81% !important;                        
   left: 8% !important;
 }
 
-/* ガクつき防止用の古い記述（vertical-align: bottom）は削除します */
+/* 漢字の下端を基準に固定し、ブレを防ぐ */
+.is-ipad #dialog-text ruby,
+.is-ipad .choice-btn ruby {
+  vertical-align: bottom !important;          
+}
 
-/* 会話のルビ */
+/* 会話のルビ（元の自動配置のまま維持） */
 .is-ipad #dialog-text rt {
   font-size: 8px !important;
   position: static !important;
   transform: none !important;
-  padding: 0 !important;
   margin: 0 !important;
-  
-  /* ▼ 3. ルビ自体の高さを極限まで縮め、漢字のすぐ上にピタッと密着させます */
-  line-height: 0.9 !important; 
+  padding: 0 !important;
 }
 
 
 /* --------------------------------------------------
- * 2. 選択肢ボタン（choice）のテキスト＆ルビ調整
+ * 2. 選択肢ボタン（choice）の調整
  * -------------------------------------------------- */
 .is-ipad .choice-btn {
   font-size: 18px !important;                 /* 選択肢の文字サイズ */
   letter-spacing: normal !important;          
   
-  /* 左右パディング0で大ズレを防止しつつ、上部パディングを広げてガクつきを防ぎます */
+  /* 左右パディングを0にして大ズレバグを完全に防止 */
   padding-left: 0 !important;               
   padding-right: 0 !important;               
-  padding-top: 24px !important;               /* 上部にルビ用の高さを最初から確保 */
-  padding-bottom: 16px !important;               
+  padding-top: 20px !important;               
+  padding-bottom: 20px !important;               
   
   text-align: left !important;                /* 左寄せ */
   display: block;
@@ -448,7 +441,7 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   text-align: left !important;
 }
 
-/* 選択肢のルビ */
+/* 選択肢のルビ（元の自動配置のまま維持） */
 .is-ipad .choice-btn rt {
   font-size: 8px !important;
   position: static !important;
@@ -456,10 +449,8 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
   padding: 0 !important;
   margin: 0 !important;
   letter-spacing: normal !important;
-  
-  /* ▼ 4. 選択肢のルビも高さを極限まで縮めて、漢字にピタッと密着させます */
-  line-height: 0.9 !important; 
 }
+
 
 /* --------------------------------------------------
  * 3. 章タイトル（chapter）の調整
