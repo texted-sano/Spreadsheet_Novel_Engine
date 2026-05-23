@@ -387,8 +387,9 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 /* ======================================================================
- * iPad専用 ルビ手動微調整用CSS
- * iPadの実機画面を見ながら、ここの「px」の数値を書き換えて微調整してください。
+ * iPad専用 ルビ手動微調整用CSS (transformによる強制移動版)
+ * ブラウザの強制固定を無視して、物理的にルビを移動させます。
+ * ここの「px」の数値を書き換えて微調整してください。
  * ====================================================================== */
 
 /* --------------------------------------------------
@@ -399,13 +400,11 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 .is-ipad #dialog-text rt {
   font-size: 8px !important;                  /* ルビのサイズ（ルビ1個分 = 8px） */
-  position: relative !important;
   
-  /* ▼【上下調整】プラス値で下へ、マイナス値で上へ（初期値: ルビ2個分 = 16px） */
-  top: 16px !important; 
-  
-  /* ▼【左右調整】プラス値で右へ、マイナス値で左へ */
-  left: 0px !important; 
+  /* ▼【上下左右の強制移動】 
+     translateX(横にずらす量)  / translateY(下に下げる量) 
+     （初期値: 横に0px / 下にルビ2個分 = 16px） */
+  transform: translateX(0px) translateY(16px) !important; 
 }
 
 
@@ -421,14 +420,12 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 .is-ipad .choice-btn rt {
   font-size: 8px !important;                  /* ルビのサイズ（ルビ1個分 = 8px） */
-  position: relative !important;
   letter-spacing: normal !important;
   
-  /* ▼【上下調整】プラス値で下へ、マイナス値で上へ */
-  top: 0px !important; 
-  
-  /* ▼【左右調整】プラス値で右へ、マイナス値で左へ（初期値: ルビ2個分 = 16px） */
-  left: 16px !important; 
+  /* ▼【上下左右の強制移動】
+     translateX(横にずらす量)  / translateY(下に下げる量)
+     （初期値: 横にルビ2個分 = 16px / 下に0px） */
+  transform: translateX(16px) translateY(0px) !important; 
 }
 
 
@@ -440,11 +437,8 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 .is-ipad #chapter-text rt {
   font-size: 11px !important;                 /* ルビのサイズ（ルビ1個分 = 11px） */
-  position: relative !important;
   
-  /* ▼【上下調整】プラス値で下へ、マイナス値で上へ */
-  top: 0px !important; 
-  
-  /* ▼【左右調整】プラス値で右へ、マイナス値で左へ */
-  left: 0px !important; 
+  /* ▼【上下左右の強制移動】
+     translateX(横にずらす量)  / translateY(下に下げる量) */
+  transform: translateX(0px) translateY(0px) !important; 
 }
