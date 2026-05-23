@@ -387,110 +387,94 @@ rt { font-size: 0.38em; letter-spacing: 0; position: relative; top: -0.2em; line
 }
 
 /* ======================================================================
- * iPad専用 テキスト＆ルビ位置 手動微調整用CSS (ガクつき完全防止版)
- * ルビの占有高さを「0」にすることで、文字が出現した時のガクつきを100%防ぎます。
- * さらに、ルビを手動でミリ単位で自由に動かせるようになります。
+ * iPad専用 テキスト＆ルビ自動位置 最終安定版
+ * 漢字の下部を基準に固定することで、文字が出現した際のガクつき（ブレ）を防ぎます。
+ * 余計なハックを撤去し、ルビを漢字の真上の最も美しい位置に自動配置します。
  * ====================================================================== */
 
 /* --------------------------------------------------
- * 1. 会話文（メッセージウィンドウ）のテキスト＆ルビ調整
+ * 1. 会話文（メッセージウィンドウ）の調整
  * -------------------------------------------------- */
 .is-ipad #dialog-text {
   font-family: var(--font-main);
   font-size: 18px !important;                 /* 会話の文字サイズ */
-  letter-spacing: 0.05em !important;          /* 会話文の文字間隔 */
   
-  /* 会話文全体の表示位置（ top: 81%, left: 8% ） */
+  /* 行間を十分に広く取り、上の行の文字とルビがぶつかるのを防ぎます */
+  line-height: 2.2 !important;                
+  
+  /* 会話文全体の表示位置（初期値） */
   top: 81% !important;                        
   left: 8% !important;
 }
 
+/* タイピング表示時の「上下ガクつき」を完全に防止する最下部ロック */
+.is-ipad #dialog-text ruby,
+.is-ipad .choice-btn ruby {
+  vertical-align: bottom !important;          /* 漢字の下端を基準に固定し、ブレを防ぐ */
+}
+
+/* 会話のルビ（元の自動配置のまま維持） */
 .is-ipad #dialog-text rt {
-  font-size: 8px !important;                  /* ルビの文字サイズ */
-  
-  /* ▼【ガクつき防止 ＆ 強制固定解除ハック】 */
-  height: 0 !important;                       /* 高さを0にしてガクつきを防ぐ */
-  line-height: 0 !important;                  /* 高さを0にしてガクつきを防ぐ */
-  display: block !important;                  /* 独立要素にして手動での移動を許可する */
-  position: relative !important;
-  
-  /* ▼【ルビの上下左右位置の調整】（初期値: 上に12px戻す / 左右は0px） */
-  /* ルビをさらに「上」に離したい場合は、-12px を -16px などに増やしてください */
-  /* ルビを「下」に近づけたい場合は、-12px を -8px などに減らしてください */
-  top: -12px !important; 
-  left: 0px !important;
-  
+  font-size: 8px !important;
+  position: static !important;
+  transform: none !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
 
 /* --------------------------------------------------
- * 2. 選択肢ボタン（choice）のテキスト＆ルビ調整
+ * 2. 選択肢ボタン（choice）の調整
  * -------------------------------------------------- */
 .is-ipad .choice-btn {
   font-size: 18px !important;                 /* 選択肢の文字サイズ */
   letter-spacing: normal !important;          
   
-  /* 左右パディングを0にして大ズレバグを防止 */
+  /* 左右パディングを0にして大ズレバグを完全に防止 */
   padding-left: 0 !important;               
   padding-right: 0 !important;               
   padding-top: 20px !important;               
   padding-bottom: 20px !important;               
   
-  text-align: left !important; /* 左寄せに戻します */
+  text-align: left !important;                /* 左寄せ */
   display: block;
 }
 
 /* 選択肢のテキスト全体の左マージン */
 .is-ipad .choice-btn span {
   display: inline-block !important;
-  margin-left: 40px !important;                /* 文字をボタンの左端からずらす余白 */
+  
+  /* ここのマージン（40px）で、ボタンの左端から綺麗に余白が空いた左寄せを作ります */
+  /* ルビと漢字が絶対に離れず、セットで綺麗に動きます */
+  margin-left: 40px !important;                
+  
   text-align: left !important;
 }
 
+/* 選択肢のルビ（元の自動配置のまま維持） */
 .is-ipad .choice-btn rt {
   font-size: 8px !important;
-  letter-spacing: normal !important;
-  
-  /* ▼【ガクつき防止 ＆ 強制固定解除ハック】 */
-  height: 0 !important;
-  line-height: 0 !important;
-  display: block !important;
-  position: relative !important;
-  
-  /* ▼【選択肢ルビの上下左右位置の調整】 */
-  /* 上に12px浮かせ、右に0pxずらした位置を初期値にしています */
-  /* 右にずらしたい場合は、left: 0px を left: 10px のようにプラスしてください */
-  top: -12px !important; 
-  left: 0px !important;
-  
-  margin: 0 !important;
+  position: static !important;
+  transform: none !important;
   padding: 0 !important;
+  margin: 0 !important;
+  letter-spacing: normal !important;
 }
 
 
 /* --------------------------------------------------
- * 3. 章タイトル（chapter）のテキスト＆ルビ調整
+ * 3. 章タイトル（chapter）の調整
  * -------------------------------------------------- */
 .is-ipad #chapter-text {
   font-size: 32px !important;                 /* 章タイトルの文字サイズ */
   letter-spacing: 0.3em !important;           /* 文字間隔 */
 }
 
+/* 章タイトルのルビ（元の自動配置のまま維持） */
 .is-ipad #chapter-text rt {
-  font-size: 11px !important;                 /* 章タイトルのルビサイズ */
-  
-  /* ▼【ガクつき防止 ＆ 強制固定解除ハック】 */
-  height: 0 !important;
-  line-height: 0 !important;
-  display: block !important;
-  position: relative !important;
-  
-  /* ▼【章タイトルルビの上下左右位置の調整】 */
-  top: -16px !important; 
-  left: 0px !important;
-  
-  margin: 0 !important;
+  font-size: 11px !important;
+  position: static !important;
+  transform: none !important;
   padding: 0 !important;
+  margin: 0 !important;
 }
