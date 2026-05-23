@@ -1126,19 +1126,24 @@ class NovelGameEngine {
 
     if (!this.state.typing) return;
     
-    let i = 0;
-    const typeChar = () => {
-      if (i < textTokens.length) {
-        const token = textTokens[i];
-        if (typeof token === 'string') { this.el.dialogText.appendChild(document.createTextNode(token)); } 
-        else {
-          const rubyEl = document.createElement('ruby'); rubyEl.textContent = token.kanji;
-          const rtEl = document.createElement('rt'); rtEl.textContent = token.ruby;
-          rubyEl.appendChild(rtEl); this.el.dialogText.appendChild(rubyEl);
-        }
-        i++; this.state.typingTimer = setTimeout(typeChar, this.state.isSkip ? 5 : settings.textSpeed);
-      } else { this.finishTyping(); }
-    };
+      let i = 0;
+      const typeChar = () => {
+        if (i < textTokens.length) {
+          const token = textTokens[i];
+          if (typeof token === 'string') { 
+            this.el.dialogText.appendChild(document.createTextNode(token)); 
+          } else {
+            const rubyEl = document.createElement('ruby');
+            const kanjiText = document.createTextNode(token.kanji);
+            rubyEl.appendChild(kanjiText);
+            const rtEl = document.createElement('rt');
+            rtEl.textContent = token.ruby;
+            rubyEl.appendChild(rtEl);
+            this.el.dialogText.appendChild(rubyEl);
+          }
+          i++; this.state.typingTimer = setTimeout(typeChar, this.state.isSkip ? 5 : settings.textSpeed);
+        } else { this.finishTyping(); }
+      };
     typeChar();
   }
 
