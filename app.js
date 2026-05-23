@@ -1572,6 +1572,13 @@ class NovelGameEngine {
  * ====================================================================== */
 document.addEventListener('DOMContentLoaded', async () => {
   window.app = new NovelGameEngine();
+  
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    document.documentElement.classList.add('is-ipad');
+  }
+  
   const loaderEl = document.getElementById('loading-overlay'); 
   const dL = new DataLoader();
 
