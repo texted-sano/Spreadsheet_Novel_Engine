@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Mochiiy+Pop+P+One&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=1">
 </head>
 <body>
 
@@ -94,6 +94,11 @@
         <div class="system-row"><span class="system-label">SE音量</span><input type="range" class="system-slider" min="0" max="100" id="se-slider" oninput="settings.seVolume = this.value/100"></div>
         <div class="system-row"><span class="system-label">ボイス音量</span><input type="range" class="system-slider" min="0" max="100" id="voice-slider" oninput="app.setVoiceVolume(this.value)"></div>
         <div class="system-row"><span class="system-label">システム音量</span><input type="range" class="system-slider" min="0" max="100" id="sys-se-slider" oninput="settings.sysSeVolume = this.value/100"></div>
+        
+        <div class="system-row">
+          <span class="system-label">わかち書き</span>
+          <button class="sys-btn" id="wakachi-toggle-btn" onclick="app.toggleWakachi()" style="width: 100%;">OFF</button>
+        </div>
         
         <button class="sys-btn system-close-btn" onclick="app.closeSystem()">CLOSE</button>
       </div>
