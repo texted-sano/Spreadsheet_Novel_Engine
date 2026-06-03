@@ -9,12 +9,13 @@ const settings = {
 };
 
 const USER_SETTINGS = { 
-  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbybvhYD9MKidQwf0c3tiNt23qOeQcnksYdLKjC-BGXUXuT0oLsxQ97f4kfNZQO8OZuVow/exec'
+  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbz2RdlSuRsJuECeBpcb81mQQT9NrZIyiDqO9dQt6AU-0DSYAbIYYlC988C_Py-6N06u6g/exec'
 };
 
 let SCENARIO = [ { cmd: 'config', name: 'title_text', text: 'NOVEL GAME' }, { cmd: 'end' } ];
 let CONFIG = [];
 window.app = null;
+
 
 /* ======================================================================
  * Class: DataLoader
@@ -652,8 +653,8 @@ class NovelGameEngine {
   startNewGame() {
     this.playSysSe(settings.seStart); 
     this.state.index = 0;
-    this.state.flags = {}; 
-    localStorage.setItem('global_flags', JSON.stringify({})); 
+    
+    this.state.flags = JSON.parse(localStorage.getItem('global_flags') || '{}');
     
     this.state.history = []; this.state.logs = []; this.state.charVoices = {}; this.state.currentChapter = '';
     Object.values(this.charMap).forEach(e => { e.classList.add('hidden'); e.src = ''; e.dataset.charName = ''; });
@@ -668,11 +669,9 @@ class NovelGameEngine {
     this.el.bgmPlayer.pause(); 
     this.state.prevScreen = 'game-screen';
     
-    // ▼ 保存されているスキン設定を読み込む
     const savedSrcKey = localStorage.getItem('global_src_key');
     this.state.currentSrcKey = savedSrcKey || 'src';
     
-    // ▼ スキンが未選択の場合のみキャラ選択を出す
     if (window.app.availableSkins && window.app.availableSkins.length > 1 && !savedSrcKey) {
       this.fadeTransition(() => {
         this.openCharSelect();
@@ -750,13 +749,30 @@ class NovelGameEngine {
       if (gapMatch) this.el.choiceUi.style.gap = gapMatch[1] + 'px';
     }
 
+    const allGroupFlagNames = [];
+    choices.forEach(c => {
+      const nameStr = String(c.name || '').trim();
+      if (nameStr) {
+        const parts = nameStr.split(/[\s,，、]+/);
+        parts.forEach(part => {
+          const key = part.includes(':') ? part.split(':')[0] : part;
+          if (key && !allGroupFlagNames.includes(key)) allGroupFlagNames.push(key);
+        });
+      } else if (c.text) {
+        if (!allGroupFlagNames.includes(c.text)) allGroupFlagNames.push(c.text);
+      }
+    });
+
     choices.forEach(c => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn'; 
-      const btnText = c.text_rubi || c.text || '';
+      
+      const rawBtnText = c.text_rubi || c.text || '';
+      const btnText = this.formatWakachiText(rawBtnText);
+      
       const tokens = this.parseTextToTokens(btnText);
       const inner = document.createElement('span');
-      inner.style.position = 'relative'; inner.style.display = 'block'; inner.style.pointerEvents = 'none';
+      inner.style.position = 'relative'; inner.style.display = 'inline-block'; inner.style.pointerEvents = 'none';
       inner.innerHTML = this.buildRubyHtml(tokens);
       btn.appendChild(inner);
 
@@ -788,15 +804,32 @@ class NovelGameEngine {
       
       btn.onclick = (e) => {
         e.stopPropagation();
+        
+        const tempFlags = {};
+        allGroupFlagNames.forEach(name => {
+          if (typeof this.state.flags[name] === 'number') {
+            tempFlags[name] = 0; 
+          } else {
+            tempFlags[name] = false; 
+          }
+        });
+
         const nameStr = String(c.name || '').trim();
         if (nameStr) {
           const parts = nameStr.split(/[\s,，、]+/);
           parts.forEach(part => {
-            if (part.includes(':')) { const [key, val] = part.split(':'); this.state.flags[key] = (this.state.flags[key] || 0) + parseInt(val, 10); } 
-            else { this.state.flags[part] = true; }
+            if (part.includes(':')) { 
+              const [key, val] = part.split(':'); 
+              tempFlags[key] = parseInt(val, 10); 
+            } else { 
+              tempFlags[part] = true; 
+            }
           });
-        } else { this.state.flags[c.text] = true; }
-        localStorage.setItem('global_flags', JSON.stringify(this.state.flags));
+        } else { 
+          tempFlags[c.text] = true; 
+        }
+        
+        this.updateGlobalFlags(tempFlags);
         
         this.el.choiceUi.style.display = 'none'; this.state.index = nextIndex; 
         if (c.to) { this.jumpTo(c.to); } else { this.executeStep(); }
@@ -827,14 +860,15 @@ class NovelGameEngine {
       case 'flag': {
         if (!step.name) break;
         const t = String(step.text).trim().toLowerCase();
-        if (t === 'true') this.state.flags[step.name] = true;
-        else if (t === 'false') this.state.flags[step.name] = false;
-        else if (t === 'reset' || t === '0') this.state.flags[step.name] = 0;
+        const tempFlags = {};
+        if (t === 'true') tempFlags[step.name] = true;
+        else if (t === 'false') tempFlags[step.name] = false;
+        else if (t === 'reset' || t === '0') tempFlags[step.name] = 0;
         else {
           const val = step.text ? parseFloat(step.text) : 1;
-          this.state.flags[step.name] = (this.state.flags[step.name] || 0) + val;
+          tempFlags[step.name] = (this.state.flags[step.name] || 0) + val;
         }
-        localStorage.setItem('global_flags', JSON.stringify(this.state.flags));
+        this.updateGlobalFlags(tempFlags);
         break;
       }
       case 'se': {
@@ -853,8 +887,8 @@ class NovelGameEngine {
         this.$('item-img').src = getPath(step); this.$('item-popup').classList.remove('hidden');
         await new Promise(r => { 
           const popup = this.$('item-popup'); 
-          popup.onclick = (e) => {
-            if (e) e.stopPropagation();
+          popup.onclick = (e) => { 
+            if (e) e.stopPropagation(); 
             popup.classList.add('hidden'); 
             popup.onclick = null; 
             r(); 
@@ -934,7 +968,6 @@ class NovelGameEngine {
         }
         
         const tempIndex = this.state.index;
-        this.state.index = chapterIndex;
         this.state.index = tempIndex;
 
         this.el.dialogUi.style.display = 'none'; this.$('game-menu-bar').style.display = 'none';
@@ -962,7 +995,8 @@ class NovelGameEngine {
         else { chapText.style.fontSize = 'max(24px, 4cqw)'; }
         this.applyTextOutline(chapText, step.outline || settings.chapterOutline);
         
-        const cText = step.text_rubi || step.text || '';
+        const rawCText = step.text_rubi || step.text || '';
+        const cText = this.formatWakachiText(rawCText);
         chapText.innerHTML = this.buildRubyHtml(this.parseTextToTokens(cText)).replace(/\n/g, '<br>');
         
         chapScreen.classList.remove('hidden'); chapScreen.style.animation = 'none'; chapScreen.offsetHeight; 
@@ -1002,8 +1036,7 @@ class NovelGameEngine {
             if (e.data && e.data.type === 'MINIGAME_END') { 
               clearTimeout(timeout); window.removeEventListener('message', onMessage); container.remove(); 
               if (e.data.flags) {
-                this.state.flags = { ...this.state.flags, ...e.data.flags }; 
-                localStorage.setItem('global_flags', JSON.stringify(this.state.flags));
+                this.updateGlobalFlags(e.data.flags);
               }
               this.$('game-menu-bar').classList.remove('ui-hidden');
               resolve(); 
@@ -1046,7 +1079,9 @@ class NovelGameEngine {
     if (!this.state.uiHidden) this.$('game-menu-bar').classList.remove('ui-hidden');
 
     const name = step.name || '';
-    this.state.fullText = step.text_rubi || step.text || '';
+    
+    const rawText = step.text_rubi || step.text || '';
+    this.state.fullText = this.formatWakachiText(rawText);
     
     const textTokens = this.parseTextToTokens(this.state.fullText);
     const rubyHtml = this.buildRubyHtml(textTokens);
@@ -1134,24 +1169,24 @@ class NovelGameEngine {
 
     if (!this.state.typing) return;
     
-      let i = 0;
-      const typeChar = () => {
-        if (i < textTokens.length) {
-          const token = textTokens[i];
-          if (typeof token === 'string') { 
-            this.el.dialogText.appendChild(document.createTextNode(token)); 
-          } else {
-            const rubyEl = document.createElement('ruby');
-            const kanjiText = document.createTextNode(token.kanji);
-            rubyEl.appendChild(kanjiText);
-            const rtEl = document.createElement('rt');
-            rtEl.textContent = token.ruby;
-            rubyEl.appendChild(rtEl);
-            this.el.dialogText.appendChild(rubyEl);
-          }
-          i++; this.state.typingTimer = setTimeout(typeChar, this.state.isSkip ? 5 : settings.textSpeed);
-        } else { this.finishTyping(); }
-      };
+    let i = 0;
+    const typeChar = () => {
+      if (i < textTokens.length) {
+        const token = textTokens[i];
+        if (typeof token === 'string') { 
+          this.el.dialogText.appendChild(document.createTextNode(token)); 
+        } else {
+          const rubyEl = document.createElement('ruby');
+          const kanjiText = document.createTextNode(token.kanji);
+          rubyEl.appendChild(kanjiText);
+          const rtEl = document.createElement('rt');
+          rtEl.textContent = token.ruby;
+          rubyEl.appendChild(rtEl);
+          this.el.dialogText.appendChild(rubyEl);
+        }
+        i++; this.state.typingTimer = setTimeout(typeChar, this.state.isSkip ? 5 : settings.textSpeed);
+      } else { this.finishTyping(); }
+    };
     typeChar();
   }
 
@@ -1498,6 +1533,7 @@ class NovelGameEngine {
       for (let i = 1; i <= 99; i++) { localStorage.removeItem(`save_slot_${i}`); }
       localStorage.removeItem('save_slot_auto'); localStorage.removeItem('save_auto_list');
       localStorage.removeItem('global_src_key');
+      localStorage.removeItem('global_flags'); 
       alert("すべてのセーブデータと設定を削除しました。"); this.renderSaveSlots(this.state.saveMode); this.$('continue-btn').disabled = true;
     }
   }
@@ -1506,12 +1542,12 @@ class NovelGameEngine {
     if (this.state.isSkip) this.stopSkip();
     this.playSysSe(settings.seClick); 
     this.setPrevScreenForPopup(); 
+    this.updateWakachiButtonState(); 
     this.showScreen('system-screen'); 
   }
   closeSystem() { this.playSysSe(settings.seClick); this.showScreen(this.state.prevScreen); }
 
   openCharSelect() {
-    this.playSysSe(settings.seClick);
     const container = this.$('char-select-cards');
     container.innerHTML = '';
     
@@ -1543,6 +1579,44 @@ class NovelGameEngine {
     localStorage.setItem('global_src_key', this.state.currentSrcKey);
     this.showScreen('game-screen');
     this.executeStep();
+  }
+
+  updateGlobalFlags(newFlags) {
+    const currentGlobal = JSON.parse(localStorage.getItem('global_flags') || '{}');
+    const merged = { ...currentGlobal, ...newFlags };
+    this.state.flags = merged;
+    localStorage.setItem('global_flags', JSON.stringify(merged));
+  }
+
+  formatWakachiText(text) {
+    if (!text) return "";
+    const isWakachi = localStorage.getItem('global_wakachi_mode') === 'true';
+    if (isWakachi) {
+      let t = text;
+      t = t.replace(/[、，]/g, '');       
+      t = t.replace(/\/+([。．])/g, '$1'); 
+      t = t.replace(/\/+/g, '　');        
+      return t;
+    } else {
+      return text.replace(/\/\/+/g, '/').replace(/\//g, ''); 
+    }
+  }
+
+  toggleWakachi() {
+    this.playSysSe(settings.seClick);
+    const current = localStorage.getItem('global_wakachi_mode') === 'true';
+    const next = !current;
+    localStorage.setItem('global_wakachi_mode', String(next));
+    this.updateWakachiButtonState();
+  }
+
+  updateWakachiButtonState() {
+    const isWakachi = localStorage.getItem('global_wakachi_mode') === 'true';
+    const btn = this.$('wakachi-toggle-btn');
+    if (btn) {
+      btn.textContent = isWakachi ? "ON" : "OFF";
+      btn.classList.toggle('on', isWakachi); 
+    }
   }
 
   async preloadGameImages(scenarioList, configList = []) {
@@ -1587,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.app = new NovelGameEngine();
   
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                (navigator.userAgentData === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (isIOS) {
     document.documentElement.classList.add('is-ipad');
   }
