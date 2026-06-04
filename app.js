@@ -1071,8 +1071,15 @@ class NovelGameEngine {
   }
 
   getVoiceText(tokens) { return tokens.map(t => typeof t === 'string' ? t : t.ruby).join(''); }
-  buildRubyHtml(tokens) { return tokens.map(t => typeof t === 'string' ? t : `<ruby>${t.kanji}<rt>${t.ruby}</rt></ruby>`).join(''); }
-
+  
+  buildRubyHtml(tokens) { 
+    const isHiragana = localStorage.getItem('global_hiragana_mode') === 'true';
+    return tokens.map(t => {
+      if (typeof t === 'string') return t;
+      return isHiragana ? t.ruby : `<ruby>${t.kanji}<rt>${t.ruby}</rt></ruby>`;
+    }).join(''); 
+  }
+  
   async displayDialog(step) {
     this.saveSnapshot(); 
     this.el.dialogUi.classList.remove('hidden');
@@ -1169,24 +1176,29 @@ class NovelGameEngine {
 
     if (!this.state.typing) return;
     
-    let i = 0;
-    const typeChar = () => {
-      if (i < textTokens.length) {
-        const token = textTokens[i];
-        if (typeof token === 'string') { 
-          this.el.dialogText.appendChild(document.createTextNode(token)); 
-        } else {
-          const rubyEl = document.createElement('ruby');
-          const kanjiText = document.createTextNode(token.kanji);
-          rubyEl.appendChild(kanjiText);
-          const rtEl = document.createElement('rt');
-          rtEl.textContent = token.ruby;
-          rubyEl.appendChild(rtEl);
-          this.el.dialogText.appendChild(rubyEl);
-        }
-        i++; this.state.typingTimer = setTimeout(typeChar, this.state.isSkip ? 5 : settings.textSpeed);
-      } else { this.finishTyping(); }
-    };
+      let i = 0;
+      const typeChar = () => {
+        if (i < textTokens.length) {
+          const token = textTokens[i];
+          if (typeof token === 'string') { 
+            this.el.dialogText.appendChild(document.createTextNode(token)); 
+          } else {
+            const isHiragana = localStorage.getItem('global_hiragana_mode') === 'true';
+            if (isHiragana) {
+              this.el.dialogText.appendChild(document.createTextNode(token.ruby));
+            } else {
+              const rubyEl = document.createElement('ruby');
+              const kanjiText = document.createTextNode(token.kanji);
+              rubyEl.appendChild(kanjiText);
+              const rtEl = document.createElement('rt');
+              rtEl.textContent = token.ruby;
+              rubyEl.appendChild(rtEl);
+              this.el.dialogText.appendChild(rubyEl);
+            }
+          }
+          i++; this.state.typingTimer = setTimeout(typeChar, this.state.isSkip ? 5 : settings.textSpeed);
+        } else { this.finishTyping(); }
+      };
     typeChar();
   }
 
@@ -1543,6 +1555,7 @@ class NovelGameEngine {
     this.playSysSe(settings.seClick); 
     this.setPrevScreenForPopup(); 
     this.updateWakachiButtonState(); 
+    this.updateHiraganaButtonState();
     this.showScreen('system-screen'); 
   }
   closeSystem() { this.playSysSe(settings.seClick); this.showScreen(this.state.prevScreen); }
@@ -1608,6 +1621,24 @@ class NovelGameEngine {
     const next = !current;
     localStorage.setItem('global_wakachi_mode', String(next));
     this.updateWakachiButtonState();
+  }
+
+  toggleHiragana() {
+    this.playSysSe(settings.seClick);
+    const current = localStorage.getItem('global_hiragana_mode') === 'true';
+    const next = !current;
+    localStorage.setItem('global_hiragana_mode', String(next));
+    this.updateHiraganaButtonState();
+  }
+
+  updateHiraganaButtonState() {
+    const isHiragana = localStorage.getItem('global_hiragana_mode') === 'true';
+    const btn = this.$('hiragana-toggle-btn');
+    if (btn) {
+      btn.textContent = isHiragana ? "ON" : "OFF";
+      btn.classList.toggle('on', isHiragana);
+    }
+    document.documentElement.classList.toggle('is-hiragana', isHiragana);
   }
 
   updateWakachiButtonState() {
@@ -1700,8 +1731,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  dL.applyConfigs(CONFIG); 
+dL.applyConfigs(CONFIG); 
   await window.app.preloadGameImages(SCENARIO, CONFIG);
+
+  const isHiragana = localStorage.getItem('global_hiragana_mode') === 'true';
+  document.documentElement.classList.toggle('is-hiragana', isHiragana);
 
   loaderEl.style.opacity = '0';
   setTimeout(() => {
