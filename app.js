@@ -2,20 +2,19 @@
  * Settings & Global Variables
  * ====================================================================== */
 const settings = { 
-  textSpeed: 40, autoDelay: 2500, bgmVolume: 0.07, seVolume: 0.07, voiceVolume: 0.07, sysSeVolume: 0.07,
+  textSpeed: 40, autoDelay: 1000, bgmVolume: 0.1, seVolume: 0.5, voiceVolume: 0.8, sysSeVolume: 0.3,
   titleBgm: '', seStart: '', seClick: '', fontChapter: '', chapterColor: '', chapterOutline: '', ttsApiUrl: 'http://127.0.0.1:50021',
   choiceBg: '', choiceFont: '', choiceColor: '', choiceSize: '', choiceOutline: '', choicePos: '', choiceBgPos: '',
   dialogFontSize: ''
 };
 
 const USER_SETTINGS = { 
-  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbz2RdlSuRsJuECeBpcb81mQQT9NrZIyiDqO9dQt6AU-0DSYAbIYYlC988C_Py-6N06u6g/exec'
+  gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbxzBg4KOvcUJ9icrp0xE4MQfg-HKj0Sn82tf1tVt4LyGOJHx4BJXNhk5y5RqzgH90Aq/exec'
 };
 
 let SCENARIO = [ { cmd: 'config', name: 'title_text', text: 'NOVEL GAME' }, { cmd: 'end' } ];
 let CONFIG = [];
 window.app = null;
-
 
 /* ======================================================================
  * Class: DataLoader
@@ -134,11 +133,16 @@ class DataLoader {
     let tx = '0', ty = '0';
     const getVal = (key) => { const match = str.match(new RegExp(`${key}:\\s*([\\d.\\-]+)`)); return match ? match[1] + '%' : null; };
     const hasWord = (word) => new RegExp(`\\b${word}\\b`).test(str);
-
     let topV = getVal('top'); let botV = getVal('bottom'); let leftV = getVal('left'); let rightV = getVal('right');
     let widthV = getVal('width'); let heightV = getVal('height');
 
-    if (hasWord('center')) { if (!leftV && !rightV) leftV = '50%'; tx = '-50%'; }
+    if (!leftV && !rightV && !hasWord('center')) {
+      leftV = '50%';
+      tx = '-50%';
+    } else if (hasWord('center')) { 
+      if (!leftV && !rightV) leftV = '50%'; 
+      tx = '-50%'; }
+    
     if (hasWord('middle')) { if (!topV && !botV) topV = '50%'; ty = '-50%'; }
     if (hasWord('top') && !topV && !botV && !hasWord('middle')) topV = '0%';
     if (hasWord('bottom') && !topV && !botV && !hasWord('middle')) botV = '0%';
@@ -483,14 +487,15 @@ class ParticleSystem {
 class NovelGameEngine {
   constructor() {
     this.$ = id => document.getElementById(id);
-    
-    this.state = {
+    this.activeSePlayers = [];
+this.state = {
       index: 0, typing: false, fullText: '', typingTimer: null, autoTimer: null, 
       isAuto: false, isSkip: false, skipTimer: null, prevScreen: 'title-screen', 
       saveMode: 'save', flags: {}, history: [], logs: [], uiHidden: false, 
       screenEffect: '', particleType: '', currentVoice: null, bgmFadeTimer: null, 
       charVoices: {}, currentVoiceBlobUrl: null, currentChapter: '',
-      chapterStartData: null, currentSrcKey: 'src'
+      chapterStartData: null, currentSrcKey: 'src',
+      textFinishedTime: 0
     };
 
     this.el = {
@@ -528,6 +533,42 @@ class NovelGameEngine {
 
   setVoiceVolume(val) { settings.voiceVolume = val / 100; if (this.state.currentVoice) this.state.currentVoice.volume = settings.voiceVolume; }
   setBgmVolume(sliderValue) { settings.bgmVolume = sliderValue / 100; this.el.bgmPlayer.volume = settings.bgmVolume; }
+
+  showConfirm(message) {
+    this.playSysSe(settings.seClick);
+    return new Promise(resolve => {
+      const screen = this.$('custom-confirm-screen');
+      const msgEl = this.$('confirm-message');
+      const yesBtn = this.$('confirm-yes-btn');
+      const noBtn = this.$('confirm-no-btn');
+      
+      msgEl.textContent = message;
+      screen.classList.remove('hidden');
+      screen.classList.add('active');
+      
+      const onYes = () => {
+        screen.classList.add('hidden');
+        screen.classList.remove('active');
+        cleanup();
+        resolve(true);
+      };
+      
+      const onNo = () => {
+        screen.classList.add('hidden');
+        screen.classList.remove('active');
+        cleanup();
+        resolve(false);
+      };
+      
+      const cleanup = () => {
+        yesBtn.removeEventListener('click', onYes);
+        noBtn.removeEventListener('click', onNo);
+      };
+      
+      yesBtn.addEventListener('click', onYes);
+      noBtn.addEventListener('click', onNo);
+    });
+  }
 
   setupWindowResizer() {
     window.addEventListener('resize', () => {
@@ -740,13 +781,52 @@ class NovelGameEngine {
 
   showChoices(choices, nextIndex) {
     this.stopSkip();
-    this.state.isAuto = false; this.$('btn-auto').classList.remove('on');
+    
+    if (this.activeSePlayers) {
+      this.activeSePlayers.forEach(p => p.pause());
+      this.activeSePlayers = [];
+    }
+    
+    this.stopVoice();
+
     this.el.choiceUi.innerHTML = '';
     this.el.choiceUi.style.inset = '0'; this.el.choiceUi.style.transform = 'none';
 
     if (settings.choicePos) {
       const gapMatch = String(settings.choicePos).toLowerCase().match(/gap\s*:?\s*([\d.]+)/);
       if (gapMatch) this.el.choiceUi.style.gap = gapMatch[1] + 'px';
+    }
+
+    if (window.speechSynthesis && choices.length > 0) {
+      const ttsParts = [];
+      choices.forEach((c, idx) => {
+        const rawBtnText = c.text_rubi || c.text || '';
+        const btnText = this.formatWakachiText(rawBtnText);
+        const textOnly = this.getVoiceText(this.parseTextToTokens(btnText));
+        ttsParts.push(`選択肢、${idx + 1}。 ${textOnly}。`);
+      });
+      
+      const ttsText = ttsParts.join(' ');
+      const u = new SpeechSynthesisUtterance(ttsText);
+      u.lang = 'ja-JP';
+      u.volume = settings.voiceVolume; 
+      
+      const firstChoice = choices[0];
+      if (firstChoice && firstChoice.voice_type && String(firstChoice.voice_type).toLowerCase() === 'web') {
+        const voices = speechSynthesis.getVoices();
+        const vId = String(firstChoice.voice_id || '');
+        if (vId !== '') {
+          const isIdx = /^\d+$/.test(vId);
+          if (isIdx) {
+            const idx = parseInt(vId, 10);
+            if (voices[idx]) u.voice = voices[idx];
+          } else {
+            const match = voices.find(v => v.name.includes(vId) || v.voiceURI.includes(vId));
+            if (match) u.voice = match;
+          }
+        }
+      }
+      window.speechSynthesis.speak(u);
     }
 
     const allGroupFlagNames = [];
@@ -804,6 +884,8 @@ class NovelGameEngine {
       
       btn.onclick = (e) => {
         e.stopPropagation();
+        
+        this.playSysSe(settings.seClick);
         
         const tempFlags = {};
         allGroupFlagNames.forEach(name => {
@@ -873,14 +955,22 @@ class NovelGameEngine {
       }
       case 'se': {
         if (this.state.isSkip) break;
-        this.el.sePlayer.src = getPath(step); this.el.sePlayer.volume = settings.seVolume; 
+        const sePath = getPath(step);
+        const player = new Audio(sePath);
+        player.volume = settings.seVolume;
+        this.activeSePlayers.push(player);
+        const removePlayer = () => {
+          this.activeSePlayers = this.activeSePlayers.filter(p => p !== player);
+        };
+        player.addEventListener('ended', removePlayer);
+        player.addEventListener('error', removePlayer);
         await new Promise(resolve => {
           const timeout = setTimeout(resolve, 800);
-          this.el.sePlayer.addEventListener('canplaythrough', () => { clearTimeout(timeout); resolve(); }, { once: true });
-          this.el.sePlayer.addEventListener('error', () => { clearTimeout(timeout); resolve(); }, { once: true });
-          if (this.el.sePlayer.readyState >= 3) { clearTimeout(timeout); resolve(); }
+          player.addEventListener('canplaythrough', () => { clearTimeout(timeout); resolve(); }, { once: true });
+          player.addEventListener('error', () => { clearTimeout(timeout); resolve(); }, { once: true });
+          if (player.readyState >= 3) { clearTimeout(timeout); resolve(); }
         });
-        this.el.sePlayer.play().catch(()=>{}); 
+        player.play().catch(removePlayer); 
         break;
       }
       case 'item': {
@@ -947,7 +1037,6 @@ class NovelGameEngine {
       }
       case 'chapter': {
         this.stopSkip();
-        this.state.isAuto = false; this.$('btn-auto').classList.remove('on');
         this.state.currentChapter = step.text || '';
         this.saveAutoSave(this.state.currentChapter);
 
@@ -999,6 +1088,36 @@ class NovelGameEngine {
         const cText = this.formatWakachiText(rawCText);
         chapText.innerHTML = this.buildRubyHtml(this.parseTextToTokens(cText)).replace(/\n/g, '<br>');
         
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          
+          const ttsText = this.getVoiceText(this.parseTextToTokens(cText));
+          const u = new SpeechSynthesisUtterance(ttsText);
+          u.lang = 'ja-JP';
+          u.volume = settings.voiceVolume; 
+          
+          if (step.voice_type && String(step.voice_type).toLowerCase() === 'web') {
+            const voices = speechSynthesis.getVoices();
+            const vId = String(step.voice_id || '');
+            if (vId !== '') {
+              const isIdx = /^\d+$/.test(vId);
+              if (isIdx) {
+                const idx = parseInt(vId, 10);
+                if (voices[idx]) u.voice = voices[idx];
+              } else {
+                const match = voices.find(v => v.name.includes(vId) || v.voiceURI.includes(vId));
+                if (match) u.voice = match;
+              }
+            }
+          }
+          
+          setTimeout(() => {
+            if (!chapScreen.classList.contains('hidden')) {
+              window.speechSynthesis.speak(u);
+            }
+          }, 1200);
+        }
+        
         chapScreen.classList.remove('hidden'); chapScreen.style.animation = 'none'; chapScreen.offsetHeight; 
         chapScreen.style.animation = 'chapterFadeInOut 4.5s ease forwards';
         
@@ -1008,7 +1127,6 @@ class NovelGameEngine {
       }
       case 'minigame': {
         this.stopSkip();
-        this.state.isAuto = false; this.$('btn-auto').classList.remove('on');
         this.$('game-menu-bar').classList.add('ui-hidden');
         const isPopup = (step.pos === 'popup'); 
         const container = document.createElement('div');
@@ -1109,7 +1227,7 @@ class NovelGameEngine {
     if (name && !isHiddenName) { this.el.nameTag.textContent = name; this.el.nameTag.classList.remove('hidden'); } 
     else { this.el.nameTag.classList.add('hidden'); }
 
-    const speakingNames = name ? name.split(/[＆&・、,と\s]+/) : [];
+    const speakingNames = name ? name.split(/[＆&・、,\s]+/) : [];
     Object.values(this.charMap).forEach(charEl => {
       if (charEl.classList.contains('hidden')) return;
       const charName = charEl.dataset.charName || '';
@@ -1123,10 +1241,14 @@ class NovelGameEngine {
     let audioSrc = this.getStepSrc(step); 
     let isWebSpeech = false; let webSpeechText = ''; let webSpeechVoiceId = '';
     const currentIndex = this.state.index; 
-
-    if (!audioSrc && name && !isHiddenName) {
+    if (!audioSrc) {
       let vConf = null;
-      for (const n of speakingNames) { if (this.state.charVoices[n]) { vConf = this.state.charVoices[n]; break; } }
+      if (step.voice_type) {
+        vConf = { type: String(step.voice_type).toLowerCase(), id: step.voice_id !== undefined ? String(step.voice_id) : '' };
+      } else if (name && !isHiddenName) {
+        for (const n of speakingNames) { if (this.state.charVoices[n]) { vConf = this.state.charVoices[n]; break; } }
+      }
+      
       if (vConf) {
         if (vConf.type === 'web') { isWebSpeech = true; webSpeechText = voiceText; webSpeechVoiceId = vConf.id; } 
         else if (vConf.type === 'voicevox') {
@@ -1165,12 +1287,27 @@ class NovelGameEngine {
           clearTimeout(timeout); resolve();
         }
       });
-      if (this.state.index !== voiceLoadIndex || !this.state.typing || !this.state.currentVoice || this.state.isSkip) return;
+      if (this.state.index !== voiceLoadIndex || !this.state.currentVoice || this.state.isSkip) return;
       this.state.currentVoice.play().catch(()=>{});
+      
     } else if (isWebSpeech && window.speechSynthesis) {
-      const u = new SpeechSynthesisUtterance(webSpeechText); u.lang = 'ja-JP'; u.volume = Math.min(1.0, settings.voiceVolume * 2);
+      const u = new SpeechSynthesisUtterance(webSpeechText); 
+      u.lang = 'ja-JP'; 
+      u.volume = settings.voiceVolume * 1.0;
+      
       const voices = speechSynthesis.getVoices();
-      if (webSpeechVoiceId) { const match = voices.find(v => v.name.includes(webSpeechVoiceId) || v.voiceURI.includes(webSpeechVoiceId)); if (match) u.voice = match; }
+      if (webSpeechVoiceId !== '') {
+        const isIdx = /^\d+$/.test(webSpeechVoiceId);
+        if (isIdx) {
+          const idx = parseInt(webSpeechVoiceId, 10);
+          if (voices[idx]) {
+            u.voice = voices[idx];
+          }
+        } else {
+          const match = voices.find(v => v.name.includes(webSpeechVoiceId) || v.voiceURI.includes(webSpeechVoiceId)); 
+          if (match) u.voice = match;
+        }
+      }
       if (this.state.typing) speechSynthesis.speak(u);
     }
 
@@ -1202,10 +1339,29 @@ class NovelGameEngine {
     typeChar();
   }
 
-  finishTyping() {
-    this.state.typing = false; this.el.dialogText.innerHTML = this.buildRubyHtml(this.parseTextToTokens(this.state.fullText)); 
+scheduleAutoAdvance() {
+    clearTimeout(this.state.autoTimer);
+    const isSePlaying = this.activeSePlayers && this.activeSePlayers.length > 0;
+    const isAudioVoicePlaying = this.state.currentVoice && !this.state.currentVoice.ended;
+    const isWebSpeechSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
+    const isAnyVoicePlaying = isAudioVoicePlaying || isWebSpeechSpeaking;
+    
+    if (isSePlaying || isAnyVoicePlaying) {
+      this.state.autoTimer = setTimeout(() => this.scheduleAutoAdvance(), 200);
+    } else {
+      const finishedTime = this.state.textFinishedTime || Date.now();
+      const elapsed = Date.now() - finishedTime;
+      const remainingDelay = Math.max(0, settings.autoDelay - elapsed);
+      this.state.autoTimer = setTimeout(() => this.advanceStory(), remainingDelay);
+    }
+  }
+
+finishTyping() {
+    this.state.typing = false; 
+    this.el.dialogText.innerHTML = this.buildRubyHtml(this.parseTextToTokens(this.state.fullText)); 
     this.el.nextArrow.classList.add('visible');
-    if (this.state.isAuto) this.state.autoTimer = setTimeout(() => this.advanceStory(), settings.autoDelay);
+    this.state.textFinishedTime = Date.now();
+    if (this.state.isAuto) this.scheduleAutoAdvance();
   }
 
   stopTyping() { clearTimeout(this.state.typingTimer); clearTimeout(this.state.autoTimer); this.state.typingTimer = this.state.autoTimer = null; this.state.typing = false; }
@@ -1214,15 +1370,26 @@ class NovelGameEngine {
     if (e && e.target.closest('button')) return; 
     if (this.state.uiHidden || this.el.choiceUi.style.display === 'flex') return; 
     if (this.state.isSkip) this.stopSkip();
-    this.playSysSe(settings.seClick); 
     if (this.state.typing) { this.stopTyping(); this.finishTyping(); } else { this.advanceStory(); } 
   }
 
   advanceStory() { if (this.state.index >= SCENARIO.length) return; if (!SCENARIO[this.state.index].cmd) { this.state.index++; this.executeStep(); } }
 
-  toggleAuto() { 
-    this.playSysSe(settings.seClick); this.state.isAuto = !this.state.isAuto; this.$('btn-auto').classList.toggle('on', this.state.isAuto); 
-    if (this.state.isAuto && !this.state.typing) { this.state.autoTimer = setTimeout(() => this.advanceStory(), settings.autoDelay); } else { clearTimeout(this.state.autoTimer); }
+toggleAuto() { 
+    this.playSysSe(settings.seClick); 
+    this.state.isAuto = !this.state.isAuto; 
+    this.$('btn-auto').classList.toggle('on', this.state.isAuto); 
+    
+    const autoBadge = this.$('auto-badge');
+    if (autoBadge) {
+      autoBadge.classList.toggle('hidden', !this.state.isAuto);
+    }
+    
+    if (this.state.isAuto && !this.state.typing) { 
+      this.scheduleAutoAdvance(); 
+    } else { 
+      clearTimeout(this.state.autoTimer); 
+    }
   }
 
   startSkip() { 
@@ -1242,9 +1409,19 @@ class NovelGameEngine {
 
   stopSkip() { this.state.isSkip = false; clearInterval(this.state.skipTimer); this.$('skip-overlay').style.display = 'none'; }
 
-  endGame() { 
+endGame() { 
     this.stopTyping(); this.stopSkip(); this.state.isAuto = false; this.$('btn-auto').classList.remove('on'); 
+    
+    const autoBadge = this.$('auto-badge');
+    if (autoBadge) autoBadge.classList.add('hidden');
+    
     this.stopVoice(); this.fadeBGM(''); this.state.screenEffect = ''; this.state.particleType = '';
+
+    
+    if (this.activeSePlayers) {
+      this.activeSePlayers.forEach(p => p.pause());
+      this.activeSePlayers = []; }
+    
     Array.from(this.$('game-canvas').classList).forEach(c => { if(c.startsWith('fx-')) this.$('game-canvas').classList.remove(c); });
     if (this.particleSystem) this.particleSystem.stop();
     for (const pos in this.charMap) { Array.from(this.charMap[pos].classList).forEach(c => { if(c.startsWith('fx-')) this.charMap[pos].classList.remove(c); }); }
@@ -1335,9 +1512,20 @@ class NovelGameEngine {
   goBack() {
     this.playSysSe(settings.seClick);
     if (this.state.history.length === 0 || this.state.isSkip || this.state.isAuto) return;
+    
+    if (this.activeSePlayers) {
+      this.activeSePlayers.forEach(p => p.pause());
+      this.activeSePlayers = [];
+    }
+    
     this.stopVoice(); this.stopTyping(); this.el.choiceUi.style.display = 'none';
     
-    const snap = this.state.history.pop();
+    let snap = this.state.history.pop();
+    
+    if (snap && snap.index === this.state.index && this.state.history.length > 0) {
+      snap = this.state.history.pop();
+    }
+    
     this.state.logs = this.state.logs.filter(l => l.index < snap.index); 
     this.state.index = snap.index; 
     this.state.flags = JSON.parse(JSON.stringify(snap.flags)); 
@@ -1365,8 +1553,10 @@ class NovelGameEngine {
     this.executeStep();
   }
 
-  rewindTo(targetIndex) {
-    if (!confirm('この時点まで巻き戻しますか？\n（以降の選択肢や獲得したフラグ、ポイントはやり直しになります）')) return;
+    async rewindTo(targetIndex) {
+    const ok = await this.showConfirm('この時点まで巻き戻しますか？\n（以降の選択肢や獲得したフラグ、ポイントはやり直しになります）');
+    if (!ok) return;
+    
     this.playSysSe(settings.seClick);
     const targetSnapIndex = this.state.history.findIndex(h => h.index === targetIndex);
     if (targetSnapIndex === -1) { alert('履歴が古すぎるため、この時点までは戻れません。'); return; }
@@ -1455,7 +1645,14 @@ class NovelGameEngine {
 
       if (data) {
         const delBtn = document.createElement('button'); delBtn.className = 'save-slot-del'; delBtn.textContent = 'DEL';
-        delBtn.onclick = (e) => { e.stopPropagation(); if (confirm(`SLOT ${i} のセーブデータを削除しますか？`)) { localStorage.removeItem(`save_slot_${i}`); this.renderSaveSlots(mode); } };
+        delBtn.onclick = async (e) => { 
+          e.stopPropagation(); 
+          const ok = await this.showConfirm(`SLOT ${i} のセーブデータを削除しますか？`);
+          if (ok) { 
+            localStorage.removeItem(`save_slot_${i}`); 
+            this.renderSaveSlots(mode); 
+          } 
+        };
         slot.appendChild(delBtn);
       }
       container.appendChild(slot);
@@ -1539,16 +1736,19 @@ class NovelGameEngine {
 
   loadFromSlot(slot) { this.loadSaveData(JSON.parse(localStorage.getItem(`save_slot_${slot}`))); }
 
-  resetAllSaves() {
+  async resetAllSaves() {
     this.playSysSe(settings.seClick);
-    if (confirm("すべてのセーブデータとオートセーブを完全に削除します。\nよろしいですか？")) {
+    const ok = await this.showConfirm("すべてのセーブデータを削除します。\nよろしいですか？");
+    if (ok) {
       for (let i = 1; i <= 99; i++) { localStorage.removeItem(`save_slot_${i}`); }
       localStorage.removeItem('save_slot_auto'); localStorage.removeItem('save_auto_list');
       localStorage.removeItem('global_src_key');
       localStorage.removeItem('global_flags'); 
-      alert("すべてのセーブデータと設定を削除しました。"); this.renderSaveSlots(this.state.saveMode); this.$('continue-btn').disabled = true;
+      this.renderSaveSlots(this.state.saveMode); 
+      this.$('continue-btn').disabled = true;
     }
   }
+
 
   openSystem() { 
     if (this.state.isSkip) this.stopSkip();
