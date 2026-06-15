@@ -528,7 +528,8 @@ this.state = {
     const key = this.state.currentSrcKey || 'src';
     const val = (step[key] !== undefined && step[key] !== '') ? step[key] : step.src;
     if (!val) return null;
-    return (step.dir && val) ? `${step.dir.replace(/\/$/, '')}/${val}` : val;
+    const rawPath = (step.dir && val) ? `${step.dir.replace(/\/$/, '')}/${val}` : val;
+    return encodeURI(rawPath);
   }
 
   setVoiceVolume(val) { settings.voiceVolume = val / 100; if (this.state.currentVoice) this.state.currentVoice.volume = settings.voiceVolume; }
@@ -537,10 +538,10 @@ this.state = {
   showConfirm(message) {
     this.playSysSe(settings.seClick);
     return new Promise(resolve => {
-      const screen = this.$('custom-confirm-screen');
-      const msgEl = this.$('confirm-message');
-      const yesBtn = this.$('confirm-yes-btn');
-      const noBtn = this.$('confirm-no-btn');
+      const screen = document.getElementById('custom-confirm-screen');
+      const msgEl = document.getElementById('confirm-message');
+      const yesBtn = document.getElementById('confirm-yes-btn');
+      const noBtn = document.getElementById('confirm-no-btn');
       
       msgEl.textContent = message;
       screen.classList.remove('hidden');
@@ -797,7 +798,8 @@ this.state = {
       if (gapMatch) this.el.choiceUi.style.gap = gapMatch[1] + 'px';
     }
 
-    if (window.speechSynthesis && choices.length > 0) {
+    const isTtsActive = localStorage.getItem('global_tts_mode') === 'true';
+    if (window.speechSynthesis && choices.length > 0 && isTtsActive) {
       const ttsParts = [];
       choices.forEach((c, idx) => {
         const rawBtnText = c.text_rubi || c.text || '';
@@ -821,7 +823,7 @@ this.state = {
             const idx = parseInt(vId, 10);
             if (voices[idx]) u.voice = voices[idx];
           } else {
-            const match = voices.find(v => v.name.includes(vId) || v.voiceURI.includes(vId));
+            const match = voices.find(v => v.name.includes(vId) || v.voiceURI.includes(vId)); 
             if (match) u.voice = match;
           }
         }
@@ -1088,9 +1090,9 @@ this.state = {
         const cText = this.formatWakachiText(rawCText);
         chapText.innerHTML = this.buildRubyHtml(this.parseTextToTokens(cText)).replace(/\n/g, '<br>');
         
-        if (window.speechSynthesis) {
+        const isTtsActive = localStorage.getItem('global_tts_mode') === 'true';
+        if (window.speechSynthesis && isTtsActive) {
           window.speechSynthesis.cancel();
-          
           const ttsText = this.getVoiceText(this.parseTextToTokens(cText));
           const u = new SpeechSynthesisUtterance(ttsText);
           u.lang = 'ja-JP';
@@ -1241,11 +1243,12 @@ this.state = {
     let audioSrc = this.getStepSrc(step); 
     let isWebSpeech = false; let webSpeechText = ''; let webSpeechVoiceId = '';
     const currentIndex = this.state.index; 
+    const isTtsActive = localStorage.getItem('global_tts_mode') === 'true';
     if (!audioSrc) {
       let vConf = null;
-      if (step.voice_type) {
+      if (step.voice_type && isTtsActive) {
         vConf = { type: String(step.voice_type).toLowerCase(), id: step.voice_id !== undefined ? String(step.voice_id) : '' };
-      } else if (name && !isHiddenName) {
+      } else if (name && !isHiddenName && isTtsActive) {
         for (const n of speakingNames) { if (this.state.charVoices[n]) { vConf = this.state.charVoices[n]; break; } }
       }
       
@@ -1756,6 +1759,7 @@ endGame() {
     this.setPrevScreenForPopup(); 
     this.updateWakachiButtonState(); 
     this.updateHiraganaButtonState();
+    this.updateTtsButtonState();
     this.showScreen('system-screen'); 
   }
   closeSystem() { this.playSysSe(settings.seClick); this.showScreen(this.state.prevScreen); }
@@ -1829,6 +1833,23 @@ endGame() {
     const next = !current;
     localStorage.setItem('global_hiragana_mode', String(next));
     this.updateHiraganaButtonState();
+  }
+
+  toggleTts() {
+    this.playSysSe(settings.seClick);
+    const current = localStorage.getItem('global_tts_mode') === 'true';
+    const next = !current;
+    localStorage.setItem('global_tts_mode', String(next));
+    this.updateTtsButtonState();
+  }
+
+  updateTtsButtonState() {
+    const isTts = localStorage.getItem('global_tts_mode') === 'true';
+    const btn = this.$('tts-toggle-btn');
+    if (btn) {
+      btn.textContent = isTts ? "ON" : "OFF";
+      btn.classList.toggle('on', isTts);
+    }
   }
 
   updateHiraganaButtonState() {
@@ -1937,6 +1958,8 @@ dL.applyConfigs(CONFIG);
   const isHiragana = localStorage.getItem('global_hiragana_mode') === 'true';
   document.documentElement.classList.toggle('is-hiragana', isHiragana);
 
+  window.app.updateTtsButtonState();
+
   loaderEl.style.opacity = '0';
   setTimeout(() => {
     loaderEl.style.display = 'none'; 
@@ -1957,3 +1980,5 @@ dL.applyConfigs(CONFIG);
     }
   }, 600);
 });
+
+_parseDataを読み込ませようとしてエラー吐いたのかな
