@@ -71,7 +71,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   top: 22%; 
   left: 50%; 
   transform: translate(-50%, -50%); 
-  width: max-content;                     /* ★変更後: 画像本来の幅に合わせる（これで左右調整が効くようになります） */
+  width: max-content;                     /* 画像本来の幅に合わせる（これで左右調整が効くようになります） */
   max-width: 100%;                        /* 画面からはみ出さないための保険 */
   z-index: 10; 
   display: flex; 
@@ -96,8 +96,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 #title-screen.show #title-sub-text { animation: fadeInDown 1.2s ease 0.6s forwards; }
 @keyframes fadeInDown { from { opacity: 0; translate: 0 -2cqh; } to { opacity: 1; translate: 0 0; } }
 
-/* ボタン外枠（画像の横幅の限界値を変えたい場合は、ここの width を引き上げます） */
-#title-menu { position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; flex-direction: column; gap: 2.5cqh; width: 100cqw; opacity: 0; }
+#title-menu { position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; flex-direction: column; gap: 2.5cqh; width: 25cqw; opacity: 0; }
+#title-menu .title-btn.is-image-btn { width: 35cqw !important; height: 9cqh !important; padding: 0 !important; margin: 0 auto; }
 #title-screen.show #title-menu { animation: fadeIn 1.2s ease 1s forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
