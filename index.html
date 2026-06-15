@@ -6,12 +6,7 @@
        ====================================================================== -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ノベルゲーム テンプレート (Pro Version)</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Mochiiy+Pop+P+One&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+  <title>教えて！ほにょっとのんのん</title>
 
   <link rel="stylesheet" href="style.css?v=1">
 </head>
@@ -64,6 +59,7 @@
         <div id="name-tag"></div>
         <div id="dialog-text"></div>
         <div id="next-arrow"><svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12z"/></svg></div>
+        <div id="auto-badge" class="hidden">AUTO</div>
       </div>
 
       <div id="skip-overlay">SKIP >></div>
@@ -166,6 +162,23 @@
      ====================================================================== -->
 <script src="scenario.js"></script>
 <script src="app.js"></script>
+
+
+<!-- ======================================================================
+     ゲーム内カスタムポップアップ（はい/いいえ）
+     ====================================================================== -->
+    <div id="custom-confirm-screen" class="popup-overlay hidden">
+      <div class="system-panel" style="width: min(500px, 90%); text-align: center; border: 2px solid var(--panel-border);">
+        <!-- ポップアップメッセージ -->
+        <div id="confirm-message" style="font-size: max(16px, 1.6cqw); color: var(--ui-text-main); margin-bottom: 30px; line-height: 1.6; font-weight: bold; white-space: pre-wrap;"></div>
+        
+        <!-- ボタンエリア（はい／いいえ） -->
+        <div style="display: flex; gap: 20px; justify-content: center;">
+          <button class="sys-btn" id="confirm-yes-btn" style="flex: 1;">はい</button>
+          <button class="sys-btn" id="confirm-no-btn" style="flex: 1; background: rgba(0,0,0,0.1); border-color: var(--ui-text-dim); color: var(--ui-text-dim);">いいえ</button>
+        </div>
+      </div>
+    </div>
 
 </body>
 </html>
