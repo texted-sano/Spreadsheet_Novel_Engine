@@ -1980,5 +1980,3 @@ dL.applyConfigs(CONFIG);
     }
   }, 600);
 });
-
-_parseDataを読み込ませようとしてエラー吐いたのかな
