@@ -5,179 +5,177 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>個人情報クイズ</title>
 <style>
+/* ===== THEME ===== */
+:root {
+  --accent: #3a6df0;
+  --accent-rgb: 58, 109, 240;
+
+  --bg-dark: #050508;
+  --panel-bg: rgba(255, 255, 255, 0.92);
+  --panel-border: rgba(0, 0, 0, 0.15);
+  --text-main: #1a1a1a;
+  --text-sub: #3a3a3a;
+  --text-dim: #707070;
+  --btn-bg: rgba(0, 0, 0, 0.04);
+  --btn-bg-hover: rgba(0, 0, 0, 0.08);
+  --btn-border: rgba(0, 0, 0, 0.6);
+  --success-color: #2e7d32;
+  --danger-color: #c62828;
+  --font-main: 'Noto Sans JP', sans-serif;
+}
+
+/* ===== BASE LAYOUT ===== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #f4f7f6; 
-    color: #333; font-family: 'Hiragino Kaku Gothic Pro', 'Noto Sans JP', sans-serif;
-    user-select: none; overflow: hidden;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 100vh; gap: 0;
-  }
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg-dark);
+  font-family: var(--font-main);
+  color: var(--text-main);
+  user-select: none; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.hidden { display: none !important; }
 
-  #start-screen, #game-screen, #end-screen {
-    display: flex; flex-direction: column; align-items: center;
-    width: 100%; max-width: 560px; padding: 24px;
-  }
-  .hidden { display: none !important; }
+/* ===== PANEL COMMON ===== */
+.screen-panel {
+  width: min(480px, 92%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 36px 32px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  display: flex; flex-direction: column; align-items: center;
+}
+.panel-title-wrap { display: inline-flex; flex-direction: column; align-items: center; margin-bottom: 18px; }
+.panel-title { font-size: 21px; font-weight: bold; letter-spacing: 0.15em; text-align: center; padding-bottom: 10px; border-bottom: 3px solid var(--accent); }
+.panel-subtitle { font-size: 14px; font-weight: 500; color: var(--text-sub); text-align: center; line-height: 1.7; margin-bottom: 24px; }
 
-  /* ヘッダー */
-  .title { font-size: 26px; font-weight: bold; color: #2c3e50; margin-bottom: 6px; }
-  .subtitle { font-size: 14px; color: #666; margin-bottom: 24px; text-align: center; line-height: 1.6; }
+/* ===== BUTTONS ===== */
+.sys-btn {
+  font-family: var(--font-main); font-size: 16px; font-weight: bold; letter-spacing: 0.05em;
+  padding: 14px 36px; border-radius: 8px; cursor: pointer;
+  background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main);
+  transition: all 0.2s ease;
+}
+.sys-btn:hover:not(:disabled) { background: var(--btn-bg-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.sys-btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+.sys-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  /* プログレスバー */
-  #progress-wrap { width: 100%; margin-bottom: 10px; }
-  #progress-label { font-size: 14px; font-weight: bold; color: #555; margin-bottom: 6px; display: flex; justify-content: space-between; }
-  #progress-bar-bg { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-  #progress-bar { height: 100%; background: #3498db; width: 0%; transition: width 0.4s ease; }
+.btn-primary {
+  font-family: var(--font-main); font-size: 17px; font-weight: bold; letter-spacing: 0.05em;
+  padding: 16px 48px; border-radius: 10px; cursor: pointer; border: none;
+  background: var(--accent); color: #fff;
+  transition: filter 0.15s ease;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { filter: brightness(0.95); }
 
-  /* スコア */
-  #score-display { font-size: 14px; color: #e67e22; margin-bottom: 18px; font-weight: bold; }
+/* ===== START SCREEN ===== */
+.rules-box {
+  width: 100%; font-size: 14px; line-height: 1.9; text-align: left;
+  background: rgba(0,0,0,0.03); border: 1px solid var(--panel-border);
+  border-radius: 10px; padding: 18px 22px; margin-bottom: 28px;
+}
 
-  /* カード */
-  #card-wrap { width: 100%; margin-bottom: 24px; min-height: 110px; }
-  #card {
-    width: 100%; min-height: 120px; padding: 24px 28px;
-    background: #fff; border: 2px solid #e2e8f0;
-    border-radius: 12px; display: flex; align-items: center; justify-content: center;
-    text-align: center; font-size: 20px; font-weight: bold; color: #333; line-height: 1.5;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    transition: border-color 0.25s, background 0.25s, transform 0.3s, opacity 0.3s;
-  }
-  #card.slide-in  { animation: slideIn 0.35s ease forwards; }
-  #card.correct   { border-color: #4caf50; background: #e8f5e9; }
-  #card.wrong     { border-color: #f44336; background: #ffebee; }
-  @keyframes slideIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+/* ===== QUIZ SCREEN ===== */
+.quiz-header {
+  width: 100%; display: flex; justify-content: space-between;
+  font-size: 13px; font-weight: bold; color: var(--text-dim);
+  letter-spacing: 0.05em; margin-bottom: 22px;
+}
+.quiz-question {
+  width: 100%; min-height: 96px; display: flex; align-items: center; justify-content: center;
+  text-align: center; font-size: 18px; font-weight: bold; line-height: 1.6;
+  padding: 18px 16px; margin-bottom: 24px;
+  border: 4px solid var(--panel-border); border-radius: 12px;
+  transition: border-color 0.25s, background 0.25s;
+}
+.quiz-question.correct { border-color: var(--success-color); background: rgba(76,175,80,0.08); }
+.quiz-question.wrong { border-color: var(--danger-color); background: rgba(244,67,54,0.07); }
 
-  /* ボタン */
-  #btn-area { display: flex; gap: 20px; margin-bottom: 20px; }
-  .ans-btn {
-    width: 160px; height: 60px; font-size: 18px; font-weight: bold;
-    border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
-  }
-  .ans-btn:hover:not(:disabled) { filter: brightness(0.9); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-  .ans-btn:active:not(:disabled) { transform: scale(0.96); }
-  .ans-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-  
-  #btn-ok { background: #4caf50; color: #fff; }
-  #btn-ng { background: #e53935; color: #fff; }
+.quiz-buttons { display: flex; gap: 14px; width: 100%; margin-bottom: 20px; }
+.ans-btn { flex: 1; padding: 16px 0; font-size: 16px; }
 
-  /* フィードバック */
-  #feedback-text {
-    min-height: 52px; font-size: 14px; font-weight: bold; color: #666; text-align: center;
-    line-height: 1.6; background: #fff; border: 2px solid #e2e8f0; border-radius: 8px;
-    padding: 12px 16px; width: 100%; transition: opacity 0.3s;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-  }
-  #feedback-text.correct-fb { color: #2e7d32; border-color: #a5d6a7; background: #f1f8e9; }
-  #feedback-text.wrong-fb   { color: #c62828; border-color: #ef9a9a; background: #ffebee; }
+.quiz-feedback {
+  width: 100%; min-height: 44px; font-size: 13px; font-weight: bold;
+  text-align: center; line-height: 1.7; color: var(--text-dim);
+}
+.quiz-feedback.correct-fb { color: var(--success-color); }
+.quiz-feedback.wrong-fb { color: var(--danger-color); }
 
-  /* フィードバックアイコン */
-  #feedback-icon {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 80px; pointer-events: none; opacity: 0; transition: opacity 0.2s;
-  }
-  #feedback-icon.show { opacity: 1; animation: popIcon 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-  @keyframes popIcon { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-
-  /* エンドスクリーン */
-  #end-screen { gap: 0; }
-  #end-title { font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 4px; }
-  #end-score { font-size: 64px; font-weight: bold; color: #3498db; margin: 12px 0 6px; }
-  #end-rank  { font-size: 20px; font-weight: bold; color: #e67e22; margin-bottom: 14px; }
-  #end-msg   { font-size: 15px; color: #555; text-align: center; line-height: 1.7; margin-bottom: 28px; }
-  #end-btn {
-    padding: 16px 48px; font-size: 18px; font-weight: bold;
-    background: #3498db; border: none; color: #fff; cursor: pointer; border-radius: 8px; transition: 0.2s;
-  }
-  #end-btn:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-
-  /* スタート画面 */
-  #start-screen .rules {
-    font-size: 15px; color: #444; line-height: 1.8; text-align: left;
-    background: #fff; border: 2px solid #e2e8f0; border-radius: 10px; padding: 20px 24px;
-    width: 100%; margin-bottom: 28px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-  }
-  #start-btn {
-    padding: 16px 56px; font-size: 20px; font-weight: bold;
-    background: #3498db; border: none; color: #fff; cursor: pointer; border-radius: 8px; transition: 0.2s;
-  }
-  #start-btn:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-
+/* ===== END SCREEN ===== */
+.end-score-num { font-size: 52px; font-weight: bold; margin: 8px 0 4px; }
+.end-rank { font-size: 16px; font-weight: bold; letter-spacing: 0.05em; margin-bottom: 14px; }
+.end-msg { font-size: 14px; color: var(--text-dim); text-align: center; line-height: 1.8; margin-bottom: 26px; }
 </style>
 </head>
 <body>
 
 <!-- スタート画面 -->
-<div id="start-screen">
-  <div class="title">🔍 個人情報クイズ！</div>
-  <div class="subtitle">ネットに「載せていい情報」と「ダメな情報」を見わけよう！</div>
-  <div class="rules">
-    📋 <strong>ルール</strong><br>
-    ・全部で <strong>10問</strong>。1問10点、合計100点満点。<br>
-    ・「○ 載せていい」か「✕ ダメ！」をクリック！<br>
-    ・<strong>70点以上</strong>でクリア！<br>
-    ・正解すると理由も教えてくれるよ！
+<div id="start-screen" class="screen-panel">
+  <div class="panel-title-wrap">
+    <div class="panel-title">個人情報クイズ</div>
   </div>
-  <button id="start-btn">クイズスタート！</button>
+  <div class="panel-subtitle">ネットに「載せていい情報」と「ダメな情報」を見わけよう</div>
+  <div class="rules-box">
+    ルール<br>
+    ・全部で10問。1問10点、合計100点満点。<br>
+    ・「○ 載せていい」か「× ダメ」を選ぶ。<br>
+    ・70点以上でクリア。<br>
+    ・答えると理由も表示されるよ。
+  </div>
+  <button class="btn-primary" id="start-btn">クイズスタート</button>
 </div>
 
 <!-- ゲーム画面 -->
-<div id="game-screen" class="hidden">
-  <div class="title">🔍 個人情報クイズ！</div>
-
-  <div id="progress-wrap">
-    <div id="progress-label">
-      <span>問題 <span id="q-num">1</span> / 10</span>
-      <span id="score-display">スコア: <span id="score">0</span> 点</span>
-    </div>
-    <div id="progress-bar-bg"><div id="progress-bar"></div></div>
+<div id="game-screen" class="screen-panel hidden">
+  <div class="quiz-header">
+    <span>問題 <span id="q-num">1</span> / 10</span>
+    <span>スコア <span id="score">0</span> 点</span>
   </div>
 
-  <div id="card-wrap">
-    <div id="card"><span id="card-text"></span></div>
+  <div class="quiz-question" id="card"><span id="card-text"></span></div>
+
+  <div class="quiz-buttons">
+    <button class="sys-btn ans-btn" id="btn-ok">○ 載せていい</button>
+    <button class="sys-btn ans-btn" id="btn-ng">× ダメ</button>
   </div>
 
-  <div id="btn-area">
-    <button class="ans-btn" id="btn-ok">○ 載せていい</button>
-    <button class="ans-btn" id="btn-ng">✕ ダメ！</button>
-  </div>
-
-  <div id="feedback-text">← ボタンを押してこたえよう！</div>
+  <div class="quiz-feedback" id="feedback-text">ボタンを押してこたえよう</div>
 </div>
 
-<!-- フィードバックアイコン -->
-<div id="feedback-icon"></div>
-
 <!-- エンド画面 -->
-<div id="end-screen" class="hidden">
-  <div id="end-title">クイズ完了！🎉</div>
-  <div id="end-score">0 点</div>
-  <div id="end-rank"></div>
-  <div id="end-msg"></div>
-  <button id="end-btn">メインゲームへ戻る</button>
+<div id="end-screen" class="screen-panel hidden">
+  <div class="panel-title-wrap">
+    <div class="panel-title">クイズ完了</div>
+  </div>
+  <div class="end-score-num"><span id="end-score">0</span> 点</div>
+  <div class="end-rank" id="end-rank"></div>
+  <div class="end-msg" id="end-msg"></div>
+  <button class="btn-primary" id="end-btn">メインゲームへ戻る</button>
 </div>
 
 <script>
-// 規約に基づきマジックナンバーを排除
 const USER_SETTINGS = {
-  PASSING_SCORE: 70,       // 合格点
-  TOTAL_QUESTIONS: 10,     // 全問題数
-  SCORE_PER_Q: 10,         // 1問あたりのスコア
-  DELAY_NEXT_Q: 1600,      // 次の問題へ進む待機時間(ms)
-  ICON_SHOW_TIME: 800      // ○×アイコンの表示時間(ms)
+  PASSING_SCORE: 70,
+  TOTAL_QUESTIONS: 10,
+  SCORE_PER_Q: 10,
+  DELAY_NEXT_Q: 1600
 };
 
 const QUESTIONS = [
-  { text: '🏠　家の住所', safe: false, hint: '❌ ダメ！　住所がバレると知らない人が家に来てしまうかもしれないよ！絶対に書かないで。' },
-  { text: '🍣　好きな食べ物', safe: true, hint: '⭕ OK！　好きな食べ物は場所や名前がわからないから大丈夫！' },
-  { text: '🏫　学校の名前', safe: false, hint: '❌ ダメ！　学校名がバレると、いつどこにいるかがわかってしまうよ！' },
-  { text: '😺　ニックネーム（本名じゃない名前）', safe: true, hint: '⭕ OK！　ニックネームなら本当の名前がわからないから安全！' },
-  { text: '📛　本名（フルネーム）', safe: false, hint: '❌ ダメ！　フルネームから住所や学校を調べられることがあるよ！' },
-  { text: '⚽　趣味（サッカーや読書など）', safe: true, hint: '⭕ OK！　趣味だけじゃどこにいるかはわからないから大丈夫！' },
-  { text: '📞　電話番号', safe: false, hint: '❌ ダメ！　電話番号はとても大切な個人情報！絶対に書かないで！' },
-  { text: '🎮　好きなゲームやアニメのタイトル', safe: true, hint: '⭕ OK！　好きな作品は場所や名前がわからないから大丈夫！' },
-  { text: '📸　制服を着た自分の写真', safe: false, hint: '❌ ダメ！　制服から学校がバレてしまうことがあるよ！顔写真も注意しよう！' },
-  { text: '📍　今いる場所のリアルタイム情報', safe: false, hint: '❌ ダメ！　今どこにいるか知られると、ついてこられるかもしれないよ！' }
+  { text: '家の住所', safe: false, hint: '× 住所がバレると、知らない人が家に来てしまうかもしれないよ。絶対に書かないで。' },
+  { text: '好きな食べ物', safe: true, hint: '○ 好きな食べ物だけでは、場所や名前がわからないから大丈夫。' },
+  { text: '学校の名前', safe: false, hint: '× 学校名がバレると、いつどこにいるかがわかってしまうよ。' },
+  { text: 'ニックネーム（本名じゃない名前）', safe: true, hint: '○ ニックネームなら、本当の名前がわからないから安全。' },
+  { text: '本名（フルネーム）', safe: false, hint: '× フルネームから、住所や学校を調べられることがあるよ。' },
+  { text: '趣味（サッカーや読書など）', safe: true, hint: '○ 趣味だけでは、どこにいるかはわからないから大丈夫。' },
+  { text: '電話番号', safe: false, hint: '× 電話番号はとても大切な個人情報。絶対に書かないで。' },
+  { text: '好きなゲームやアニメのタイトル', safe: true, hint: '○ 好きな作品だけでは、場所や名前がわからないから大丈夫。' },
+  { text: '制服を着た自分の写真', safe: false, hint: '× 制服から学校がバレてしまうことがあるよ。顔写真も注意しよう。' },
+  { text: '今いる場所のリアルタイム情報', safe: false, hint: '× 今どこにいるか知られると、ついてこられるかもしれないよ。' }
 ];
 
 class QuizGame {
@@ -200,9 +198,7 @@ class QuizGame {
       card: document.getElementById('card'),
       cardText: document.getElementById('card-text'),
       qNum: document.getElementById('q-num'),
-      progressBar: document.getElementById('progress-bar'),
       feedbackText: document.getElementById('feedback-text'),
-      feedbackIcon: document.getElementById('feedback-icon'),
       btnOk: document.getElementById('btn-ok'),
       btnNg: document.getElementById('btn-ng'),
       score: document.getElementById('score'),
@@ -215,7 +211,6 @@ class QuizGame {
   }
 
   bindEvents() {
-    // bindを使用し、thisのコンテキストを維持
     this.startQuizHandler = this.startQuiz.bind(this);
     this.answerOkHandler = () => this.answer(true);
     this.answerNgHandler = () => this.answer(false);
@@ -228,7 +223,6 @@ class QuizGame {
   }
 
   startQuiz() {
-    // 偏りの少ないフィッシャー・イェーツのシャッフルアルゴリズムを採用
     for (let i = this.questions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [this.questions[i], this.questions[j]] = [this.questions[j], this.questions[i]];
@@ -241,12 +235,11 @@ class QuizGame {
 
   showQuestion() {
     const q = this.questions[this.currentQ];
-    this.els.card.className = 'slide-in';
+    this.els.card.className = 'quiz-question';
     this.els.cardText.textContent = q.text;
     this.els.qNum.textContent = this.currentQ + 1;
-    this.els.progressBar.style.width = (this.currentQ / this.questions.length * 100) + '%';
-    this.els.feedbackText.textContent = '← ボタンを押してこたえよう！';
-    this.els.feedbackText.className = '';
+    this.els.feedbackText.textContent = 'ボタンを押してこたえよう';
+    this.els.feedbackText.className = 'quiz-feedback';
     this.els.btnOk.disabled = false;
     this.els.btnNg.disabled = false;
   }
@@ -260,20 +253,15 @@ class QuizGame {
 
     if (correct) {
       this.score += this.settings.SCORE_PER_Q;
-      this.els.card.className = 'correct';
-      this.els.feedbackIcon.textContent = '⭕';
+      this.els.card.className = 'quiz-question correct';
       this.els.feedbackText.textContent = q.hint;
-      this.els.feedbackText.className = 'correct-fb';
+      this.els.feedbackText.className = 'quiz-feedback correct-fb';
       this.els.score.textContent = this.score;
     } else {
-      this.els.card.className = 'wrong';
-      this.els.feedbackIcon.textContent = '❌';
+      this.els.card.className = 'quiz-question wrong';
       this.els.feedbackText.textContent = q.hint;
-      this.els.feedbackText.className = 'wrong-fb';
+      this.els.feedbackText.className = 'quiz-feedback wrong-fb';
     }
-
-    this.els.feedbackIcon.classList.add('show');
-    setTimeout(() => this.els.feedbackIcon.classList.remove('show'), this.settings.ICON_SHOW_TIME);
 
     setTimeout(() => {
       this.currentQ++;
@@ -287,27 +275,26 @@ class QuizGame {
 
   showEnd() {
     this.isClear = this.score >= this.settings.PASSING_SCORE;
-    this.els.progressBar.style.width = '100%';
     this.els.gameScreen.classList.add('hidden');
     this.els.endScreen.classList.remove('hidden');
-    this.els.endScore.textContent = this.score + ' 点';
+    this.els.endScore.textContent = this.score;
 
     let rank, msg;
     if (this.score >= 100) {
-      rank = '🏆 パーフェクト！　個人情報マスター！';
-      msg = '全問正解！　すごい！　キミはネットのルールを\nバッチリわかっているよ！　この調子で守り続けてね！';
+      rank = 'パーフェクト！個人情報マスター';
+      msg = '全問正解！キミはネットのルールをバッチリわかっているね。\nこの調子で守り続けよう。';
     } else if (this.score >= 80) {
-      rank = '✨ すごい！　ほぼ完璧！';
-      msg = 'よくできました！　もう少しで満点だったよ。\nまちがえた問題をもう一度確認してみよう！';
+      rank = 'よくできました';
+      msg = 'もう少しで満点だったよ。\nまちがえた問題をもう一度確認してみよう。';
     } else if (this.score >= this.settings.PASSING_SCORE) {
-      rank = '🎉 クリア！　合格！';
-      msg = 'クリアおめでとう！　ネットのルールをわかってきたね。\nさらに勉強してもっとかしこくなろう！';
+      rank = 'クリア';
+      msg = 'クイズに合格したよ。ネットのルールがわかってきたね。\nさらに勉強してもっとかしこくなろう。';
     } else if (this.score >= 50) {
-      rank = '📖 もう少し！';
-      msg = 'もう少しだったよ。個人情報って何か、もう一度\nお父さん・お母さんといっしょに確認してみよう！';
+      rank = 'もう少し';
+      msg = 'もう少しだったよ。個人情報って何か、もう一度\nお父さん・お母さんといっしょに確認してみよう。';
     } else {
-      rank = '💪 もっと勉強しよう！';
-      msg = 'ネットのルールはとても大切。\nこのゲームをもう一度プレイして、しっかり覚えてね！';
+      rank = 'もう一度チャレンジ';
+      msg = 'ネットのルールはとても大切。\nこのクイズをもう一度プレイして、しっかり覚えてね。';
     }
 
     this.els.endRank.textContent = rank;
@@ -322,11 +309,10 @@ class QuizGame {
         minigame_clear: this.isClear
       }
     }, '*');
-    this.destroy(); // 終了時にインスタンスをクリーンアップ
+    this.destroy();
   }
 
   destroy() {
-    // メモリリーク防止のためイベントリスナーを解除
     this.els.startBtn.removeEventListener('click', this.startQuizHandler);
     this.els.btnOk.removeEventListener('click', this.answerOkHandler);
     this.els.btnNg.removeEventListener('click', this.answerNgHandler);
@@ -334,7 +320,6 @@ class QuizGame {
   }
 }
 
-// 規約に基づき DOMContentLoaded で安全に初期化
 document.addEventListener('DOMContentLoaded', () => {
   window.quizGame = new QuizGame(QUESTIONS, USER_SETTINGS);
 });
