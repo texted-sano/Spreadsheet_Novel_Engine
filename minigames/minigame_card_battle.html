@@ -1,768 +1,960 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>情報リテラシー・カードバトル</title>
-  <style>
-    /* =========================================================
-       CSS リセット & フォント設定
-    ========================================================= */
-    * {
-      box-sizing: border-box;
-      user-select: none;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Impact", "Arial Black", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-      background-color: #f4f4f6;
-      background-image: repeating-linear-gradient(45deg, #ffffff, #ffffff 10px, #f0f0f5 10px, #f0f0f5 20px);
-      color: #1a1a1c;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>情報リテラシー・カードバトル</title>
+<style>
+/* ===== RESET ===== */
+* { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: #050508;
+  color: #1a1a1c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
 
-    #game-container {
-      position: relative;
-      width: 100%;
-      max-width: 800px;
-      height: 100%;
-      max-height: 600px;
-      background-color: #fff;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      overflow: hidden;
-      border: 4px solid #1a1a1c;
-    }
+/* ===== THEME ===== */
+:root {
+  --accent: #e63946;
+  --accent-rgb: 230, 57, 70;
+  --danger: #2563eb;
+  --danger-rgb: 37, 99, 235;
+}
 
-    /* =========================================================
-       UI
-    ========================================================= */
-    .slant-header {
-      background: #ffb100;
-      color: #1a1a1c;
-      padding: 10px 20px;
-      font-size: 1.5rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      transform: skewX(-15deg) translateX(-10px);
-      width: calc(100% + 20px);
-      border-bottom: 4px solid #1a1a1c;
-      display: flex;
-      justify-content: space-between;
-    }
-    .slant-header-inner {
-      transform: skewX(15deg);
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-    }
+/* ===== LAYOUT ===== */
+#game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 760px;
+  max-height: 680px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(10px, 2vw, 20px);
+  gap: clamp(8px, 1.5vh, 14px);
+  overflow: hidden;
+}
 
-    .btn-skew {
-      background: #00d0ff;
-      color: #1a1a1c;
-      border: 3px solid #1a1a1c;
-      padding: 15px 30px;
-      font-size: 1.2rem;
-      font-weight: 900;
-      cursor: pointer;
-      transform: skewX(-10deg);
-      transition: all 0.2s;
-      box-shadow: 4px 4px 0 #1a1a1c;
-    }
-    .btn-skew span {
-      display: block;
-      transform: skewX(10deg);
-    }
-    .btn-skew:hover {
-      background: #ffb100;
-      transform: skewX(-10deg) translateY(-2px);
-      box-shadow: 6px 6px 0 #1a1a1c;
-    }
-    .btn-skew:active {
-      transform: skewX(-10deg) translateY(2px);
-      box-shadow: 2px 2px 0 #1a1a1c;
-    }
+/* ===== PANEL BASE ===== */
+.panel {
+  background: rgba(255, 255, 255, 0.93);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+}
 
-    /* =========================================================
-       バトルエリア（敵とHPバー）
-    ========================================================= */
-    .battle-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: center;
-      padding: 15px 20px;
-      position: relative;
-      background: linear-gradient(135deg, #e0e0eb, #ffffff);
-    }
+/* ===== BATTLE STATUS ===== */
+.battle-status {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.2vh, 12px);
+  padding: clamp(12px, 2vh, 18px) clamp(16px, 3vw, 28px);
+  overflow: hidden;
+}
+.player-status {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 1.6vh, 14px) clamp(16px, 3vw, 28px);
+}
+.hp-row {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hp-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hp-label {
+  font-size: clamp(11px, 1.6vw, 13px);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #444;
+}
+.hp-value {
+  font-size: clamp(16px, 2.6vw, 20px);
+  font-weight: 900;
+  color: #1a1a1c;
+  transition: color 0.2s ease;
+}
+.hp-row.is-low .hp-value { color: var(--accent); }
+.hp-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.hp-bar-label {
+  font-size: clamp(10px, 1.4vw, 12px);
+  font-weight: 900;
+  color: #444;
+  flex-shrink: 0;
+}
+.hp-bar-track {
+  flex: 1 1 auto;
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+.hp-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
 
-    /* HPバー（斜めデザイン） */
-    .hp-container {
-      width: 80%;
-      margin-bottom: 5px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .hp-label {
-      font-weight: 900;
-      font-size: 1.1rem;
-      margin-bottom: 3px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .hp-bar-bg {
-      width: 100%;
-      height: 22px;
-      background: #1a1a1c;
-      transform: skewX(-15deg);
-      border: 3px solid #1a1a1c;
-      position: relative;
-      overflow: hidden;
-    }
-    .hp-bar-fill {
-      height: 100%;
-      width: 100%;
-      transition: width 0.3s ease-out;
-    }
-    .enemy-hp .hp-bar-fill { background: #ff3366; }
-    .player-hp .hp-bar-fill { background: #00d0ff; }
-    .hp-text {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 900;
-      transform: skewX(15deg);
-      text-shadow: 1px 1px 2px #000;
-    }
+.enemy-display {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.enemy-display.is-hit { animation-name: enemyHit; animation-timing-function: ease; }
+.enemy-figure {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  display: block;
+}
+.enemy-image {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+.ef-body { fill: #15151a; stroke: #f59e0b; stroke-width: 4; }
+.ef-spike { stroke: #f59e0b; stroke-width: 4; stroke-linecap: round; }
+.ef-eye { fill: #f59e0b; }
+@keyframes enemyHit {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  30% { transform: translateX(-6px) rotate(-4deg); }
+  60% { transform: translateX(6px) rotate(4deg); }
+}
 
-    /* 敵画像 */
-    .enemy-image {
-      width: 130px;
-      height: 130px;
-      background-color: #333;
-      border: 4px solid #1a1a1c;
-      border-radius: 10px;
-      margin: 10px 0;
-      box-shadow: 8px 8px 0 #ff3366;
-      transition: transform 0.1s;
-    }
-    .damage-anim {
-      animation: shake 0.3s;
-      filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5);
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px) rotate(-5deg); }
-      50% { transform: translateX(10px) rotate(5deg); }
-      75% { transform: translateX(-10px) rotate(-5deg); }
-    }
+#game-container.is-shaking { animation-name: screenShake; animation-timing-function: ease; }
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-7px, 3px); }
+  40% { transform: translate(6px, -4px); }
+  60% { transform: translate(-5px, 4px); }
+  80% { transform: translate(4px, -2px); }
+}
 
-    /* =========================================================
-       手札エリア
-    ========================================================= */
-    .hand-area {
-      height: 290px;
-      background: #1a1a1c;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      padding: 15px;
-      border-top: 4px solid #ffb100;
-    }
+/* ===== HAND / CARD ===== */
+.hand-area {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(8px, 2vw, 16px);
+  flex-wrap: wrap;
+}
+.battle-card {
+  width: clamp(108px, 30%, 190px);
+  min-height: clamp(168px, 40vh, 226px);
+  display: flex;
+  flex-direction: column;
+  padding: clamp(8px, 1.4vw, 12px);
+  border-width: 4px;
+  border-color: var(--card-color, #2a2a2e);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.battle-card:hover {
+  transform: translateY(-8px);
+}
+.card-level {
+  font-size: clamp(11px, 1.5vw, 13px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--card-color, #2a2a2e);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.card-name {
+  font-size: clamp(11px, 1.6vw, 13px);
+  font-weight: 900;
+  line-height: 1.3;
+  color: #1a1a1c;
+  text-align: center;
+  min-height: 2.6em;
+  margin-bottom: 6px;
+}
+.card-desc {
+  font-size: clamp(9px, 1.25vw, 11px);
+  line-height: 1.4;
+  color: #222;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+.card-atk { font-size: clamp(11px, 1.6vw, 13px); font-weight: 900; color: #1a1a1c; }
+.card-attr { font-size: clamp(9px, 1.2vw, 11px); font-weight: 700; color: #555; }
 
-    /* =========================================================
-       カードデザイン
-    ========================================================= */
-    .ygo-card {
-      width: 170px;
-      height: 245px;
-      background: #d4a373; 
-      border: 3px solid #333;
-      border-radius: 4px;
-      padding: 5px;
-      box-shadow: 0 5px 10px rgba(0,0,0,0.5);
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-    .ygo-card:hover {
-      transform: translateY(-15px);
-      box-shadow: 0 15px 20px rgba(0,0,0,0.6);
-      z-index: 10;
-    }
-    
-    /* カード名と属性 */
-    .ygo-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border: 2px solid #333;
-      padding: 2px 5px;
-      background: linear-gradient(to right, #fff, #e6e6e6);
-      margin-bottom: 2px;
-    }
-    .ygo-name {
-      font-size: 0.75rem;
-      font-weight: 900;
-      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      letter-spacing: -0.5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #000;
-    }
-    .ygo-attr {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #ffb100;
-      border: 1px solid #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 0.65rem;
-      color: #fff;
-      font-weight: bold;
-      flex-shrink: 0;
-    }
+/* ===== QUIZ ===== */
+.quiz-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 30;
+  padding: clamp(12px, 3vw, 24px);
+}
+.quiz-overlay.show { opacity: 1; pointer-events: auto; }
+.quiz-panel {
+  width: 100%;
+  max-width: 460px;
+  padding: clamp(18px, 3vw, 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.quiz-question {
+  font-size: clamp(13px, 2vw, 16px);
+  font-weight: 900;
+  line-height: 1.6;
+  color: #1a1a1c;
+}
+.quiz-options { display: flex; flex-direction: column; gap: 10px; }
+.quiz-option {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.55);
+  font-family: inherit;
+  font-size: clamp(11px, 1.6vw, 13px);
+  font-weight: 700;
+  color: #1a1a1c;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.12); }
+.quiz-option:disabled { cursor: default; }
+.quiz-option.is-correct { border-width: 4px; border-color: var(--accent); background: rgba(var(--accent-rgb), 0.18); }
+.quiz-option.is-incorrect { border-width: 4px; border-color: var(--danger); background: rgba(var(--danger-rgb), 0.15); }
+.quiz-mark { font-weight: 900; margin-right: 6px; }
+.quiz-option.is-correct .quiz-mark { color: var(--accent); }
+.quiz-option.is-incorrect .quiz-mark { color: var(--danger); }
 
-    /* レベル（星） */
-    .ygo-level {
-      text-align: right;
-      font-size: 0.8rem;
-      color: #d90000;
-      letter-spacing: 1px;
-      margin-bottom: 2px;
-      text-shadow: 1px 1px 0 #fff;
-    }
+/* ===== SYMBOL FLASH ===== */
+.symbol-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  padding: clamp(14px, 3vw, 24px);
+  cursor: pointer;
+}
+.symbol-flash.show { opacity: 1; pointer-events: auto; }
+.result-modal {
+  width: min(340px, 90%);
+  display: flex;
+  flex-direction: column;
+  border: 6px solid #fff;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.result-top {
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(18px, 4vh, 28px) 0;
+}
+.symbol-flash.is-wrong .result-top { background: var(--danger); }
+.symbol-mark {
+  font-size: clamp(48px, 13vw, 72px);
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 3px #fff;
+  paint-order: stroke fill;
+}
+.result-bottom {
+  background: #fff;
+  color: #1a1a1c;
+  font-size: clamp(12px, 1.8vw, 14px);
+  line-height: 1.8;
+  text-align: left;
+  padding: clamp(16px, 3vw, 22px);
+}
 
-    /* カード画像 */
-    .ygo-image {
-      flex: 1; /* 高さを自動的に確保 */
-      min-height: 80px; /* 最低限の高さを保証 */
-      border: 2px solid #333;
-      background-color: #999;
-      background-size: cover;
-      background-position: center;
-      margin-bottom: 4px;
-      box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-    }
-    
-    /* テキスト・効果欄 */
-    .ygo-text-box {
-      height: 80px; /* テキスト領域を広げる */
-      background: #fdf5e6;
-      border: 2px solid #333;
-      padding: 4px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .ygo-type {
-      font-size: 0.65rem;
-      font-weight: bold;
-      color: #000;
-      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      margin-bottom: 2px;
-    }
-    .ygo-desc {
-      font-size: 0.6rem;
-      line-height: 1.3;
-      color: #000;
-      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      /* 複数行ではみ出る場合は「...」にする保険設定 */
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      flex: 1;
-    }
-    .ygo-stats {
-      text-align: right;
-      font-size: 0.8rem;
-      font-weight: 900;
-      border-top: 1px solid #ccc;
-      padding-top: 2px;
-      color: #000;
-    }
+/* ===== SCREENS ===== */
+.battle-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.5vh, 14px);
+}
+.screen-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(14px, 3vw, 24px);
+}
+.info-panel { width: min(480px, 92%); padding: 36px 32px; text-align: center; }
+.info-panel h1 {
+  font-size: clamp(19px, 3.2vw, 27px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #1a1a1c;
+  margin-bottom: 14px;
+}
+.info-panel p {
+  font-size: clamp(12px, 1.8vw, 14px);
+  line-height: 1.7;
+  color: #333;
+  margin-bottom: 24px;
+}
+.panel-title-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 18px; }
+.panel-title {
+  font-size: clamp(17px, 2.6vw, 21px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #1a1a1c;
+  padding-bottom: 8px;
+  border-bottom: 3px solid var(--accent);
+}
+.panel-subtitle {
+  font-size: clamp(11px, 1.6vw, 13px);
+  font-weight: 700;
+  color: #444;
+  line-height: 1.7;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.rules-box {
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #222;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+}
+.btn-primary {
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  padding: 16px 48px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { filter: brightness(0.95); }
 
-    /* =========================================================
-       クイズモーダル（カード選択時にポップアップ）
-    ========================================================= */
-    .quiz-modal {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(26, 26, 28, 0.9);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 20;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    .quiz-modal.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .quiz-content {
-      width: 90%;
-      background: #fff;
-      border: 4px solid #ffb100;
-      padding: 20px;
-      box-shadow: 10px 10px 0 #00d0ff;
-    }
-    .quiz-question {
-      font-size: 1.1rem;
-      font-weight: 900;
-      margin-bottom: 20px;
-      line-height: 1.5;
-      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-    }
-    .quiz-options {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .quiz-option-btn {
-      background: #f4f4f6;
-      border: 3px solid #1a1a1c;
-      padding: 10px;
-      font-size: 0.95rem;
-      font-weight: bold;
-      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
-    }
-    .quiz-option-btn:hover {
-      background: #00d0ff;
-      color: #fff;
-      transform: translateX(10px);
-    }
-
-    /* =========================================================
-       カットイン演出（ATTACK / COUNTER）
-    ========================================================= */
-    .cutin-overlay {
-      position: absolute;
-      top: 40%; left: -100%; width: 100%;
-      padding: 20px 0;
-      text-align: center;
-      font-size: 4rem;
-      font-weight: 900;
-      font-style: italic;
-      color: #fff;
-      z-index: 30;
-      pointer-events: none;
-      text-shadow: 4px 4px 0 #000;
-      transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .cutin-overlay.show {
-      left: 0;
-    }
-    .cutin-attack { background: rgba(0, 208, 255, 0.8); border-top: 5px solid #fff; border-bottom: 5px solid #fff;}
-    .cutin-counter { background: rgba(255, 51, 102, 0.8); border-top: 5px solid #fff; border-bottom: 5px solid #fff;}
-
-    /* =========================================================
-       各種画面（スタート、リザルト）
-    ========================================================= */
-    .screen {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(244, 244, 246, 0.95);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 40;
-    }
-    .screen h1 { font-size: 3rem; margin-bottom: 20px; text-align: center; color: #1a1a1c; text-transform: uppercase; font-style: italic; text-shadow: 3px 3px 0 #ffb100;}
-    .screen p { font-size: 1.2rem; margin-bottom: 30px; text-align: center; line-height: 1.6; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;}
-    .hidden { display: none !important; }
-  </style>
+.hidden { display: none !important; }
+</style>
 </head>
 <body>
 
-  <div id="game-container">
-    <!-- UIはJSで構築 -->
-  </div>
+<div id="game-container"></div>
 
 <script>
-  /**
-   * =====================================================================
-   * 【設定項目】 USER_SETTINGS
-   * =====================================================================
-   */
-  const USER_SETTINGS = {
-    // バトルステータス
-    PLAYER_MAX_HP: 4000,
-    ENEMY_MAX_HP: 6000,
-    ENEMY_ATK: 1000,       // クイズ不正解時に受けるダメージ
+const USER_SETTINGS = {
+  PLAYER_MAX_HP: 4000,
+  ENEMY_MAX_HP: 6000,
+  ENEMY_ATK: 1000,
 
-    // 手札の枚数
-    HAND_SIZE: 3,
+  /* ===== ENEMY_IMAGE (images/ 配下の相対パスを指定。空文字ならSVGのまま) ===== */
+  ENEMY_IMAGE: '',
 
-    // カードデータ（デッキプール）
-    CARDS: [
-      { id: "c1", name: "アンチウイルス剣士", attr: "光", level: "★★★★", type: "[サイバー族/効果]", desc: "悪意あるプログラムを検知し、斬り裂く。", atk: 1500, imgClass: "img-card-c1" },
-      { id: "c2", name: "ファイアウォール竜", attr: "炎", level: "★★★★★★", type: "[ネットワーク族/効果]", desc: "不正なアクセスを業火で焼き尽くし遮断する。", atk: 2500, imgClass: "img-card-c2" },
-      { id: "c3", name: "PW・ジェネレータ", attr: "地", level: "★★★", type: "[暗号族/効果]", desc: "複雑で強固な文字列を生成し、防御を崩させない。", atk: 1200, imgClass: "img-card-c3" },
-      { id: "c4", name: "ファクトチェッカー", attr: "風", level: "★★★★", type: "[情報族/効果]", desc: "フェイクニュースを見破り、真実の矢を放つ。", atk: 1800, imgClass: "img-card-c4" },
-      { id: "c5", name: "二段階認証の盾", attr: "水", level: "★★", type: "[セキュリティ族/効果]", desc: "一度の突破では崩れない鉄壁の防御。", atk: 1000, imgClass: "img-card-c5" },
-    ],
+  HAND_SIZE: 3,
+  LOW_HP_THRESHOLD: 0.3,
 
-    // 情報リテラシークイズデータ
-    // options[0] が必ず正解になるように記述（ゲーム内でシャッフルされます）
-    QUESTIONS: [
-      {
-        q: "知らない人から「荷物の不在通知」とURLが書かれたSMSが届いた。正しい対応は？",
-        options: ["URLはクリックせず、公式アプリ等で配送状況を確認する", "急いでURLをクリックして再配達を依頼する", "送信元に電話をかけて確認する", "自分の個人情報を返信して本人確認する"]
-      },
-      {
-        q: "パスワードを安全に管理する方法として正しいのは？",
-        options: ["異なるサービスで別々の長く複雑なパスワードを設定する", "覚えやすいように自分の誕生日をパスワードにする", "1つの強力なパスワードを全てのサイトで使い回す", "モニターの端に付箋でパスワードを貼っておく"]
-      },
-      {
-        q: "SNSに友達と一緒に撮った写真を投稿したい。正しい行動は？",
-        options: ["一緒に写っている友達に許可をもらってから投稿する", "友達だから許可をとらずにすぐに投稿する", "顔が少ししか写っていないので無断で投稿する", "後で消せばいいのでとりあえず投稿する"]
-      },
-      {
-        q: "カフェの「パスワードなしの無料Wi-Fi」を利用する際、避けるべき行動は？",
-        options: ["クレジットカード情報を入力してオンラインショッピングをする", "天気予報のサイトを閲覧する", "地図アプリでお店の場所を調べる", "ニュース記事を読む"]
-      },
-      {
-        q: "災害時、SNSで「〇〇地域で暴動が起きている」という投稿を見た。正しい対応は？",
-        options: ["公的機関などの信頼できる情報源で事実か確認する", "みんなに知らせるためにすぐにリツイート（拡散）する", "友達全員にLINEでその情報を転送する", "真実だと信じてすぐに行動を起こす"]
+  /* ===== ATTRIBUTE_COLORS (カード枠・レベル表示の色。DEFAULTは属性未指定時) ===== */
+  ATTRIBUTE_COLORS: {
+    "光": "#eab308",
+    "炎": "#f97316",
+    "水": "#2563eb",
+    "風": "#16a34a",
+    "地": "#92653f",
+    "闇": "#7c3aed",
+    DEFAULT: "#2a2a2e"
+  },
+
+  CARD_BALANCE: {
+    BASE_ATK: 600,
+    ATK_PER_LEVEL: 300
+  },
+
+  TIMING: {
+    ANSWER_FEEDBACK_MS: 600,
+    HIT_ANIM_MS: 300,
+    SCREEN_SHAKE_MS: 350,
+    RESULT_DELAY_MS: 500
+  },
+
+  /* ===== CARDS (1枚ごとにカード情報と出題をまとめて1つのオブジェクトで管理。level = ATKの連動元(atkを個別指定した場合はそちらを優先)。1度使用したら再抽選されない。question.options[0] = correct) ===== */
+  CARDS: [
+    {
+      id: "c1", name: "パスワードロック", attr: "地", level: 1, atk: 600,
+      desc: "誰にも知られない暗証番号で、扉を固く閉ざす。",
+      question: {
+        q: "強いパスワードの条件として正しいものは？",
+        options: ["長さがあり、英数字や記号を組み合わせた複雑な文字列", "覚えやすい自分の誕生日や名前", "短くてもよく使う単純な単語", "全サービス共通の覚えやすい言葉"],
+        explanation: "誕生日や単純な単語は推測されやすく危険です。長く、英数字や記号を組み合わせた複雑な文字列が安全なパスワードの基本です。"
       }
-    ]
-  };
-
-  /**
-   * =====================================================================
-   * 【ゲームロジック】 CardBattleGame Class
-   * =====================================================================
-   */
-  class CardBattleGame {
-    constructor(containerId, settings) {
-      this.container = document.getElementById(containerId);
-      this.settings = settings;
-
-      this.playerHp = settings.PLAYER_MAX_HP;
-      this.enemyHp = settings.ENEMY_MAX_HP;
-      this.deck = [];
-      this.hand = [];
-      this.totalDamageDealt = 0;
-      
-      this.currentCard = null;
-      this.currentQuestion = null;
-      
-      this.isGameOver = false;
-      this.isClear = false;
-
-      this.boundHandleClick = this.handleClick.bind(this);
+    },
+    {
+      id: "c2", name: "ログアウトの作法", attr: "風", level: 1, atk: 600,
+      desc: "席を離れる前に、必ず接続を断ち切る基本動作。",
+      question: {
+        q: "図書館や学校など共有のパソコンを使い終わったら、まず何をするべき？",
+        options: ["使用していたアカウントから必ずログアウトする", "ログインしたままにしておく", "次の人のためにブラウザを開けたままにする", "パスワードだけ変えておく"],
+        explanation: "共有のパソコンでログインしたままにすると、次に使う人に自分のアカウントを覗かれたり操作されたりする危険があります。使い終わったら必ずログアウトしましょう。"
+      }
+    },
+    {
+      id: "c3", name: "迷惑メールフィルター", attr: "風", level: 2, atk: 900,
+      desc: "怪しい差出人のメールを自動で振り分け、隔離する。",
+      question: {
+        q: "知らない人から「荷物の不在通知」とURLが書かれたSMSが届いた。正しい対応は？",
+        options: ["URLはクリックせず、公式アプリ等で配送状況を確認する", "急いでURLをクリックして再配達を依頼する", "送信元に電話をかけて確認する", "自分の個人情報を返信して本人確認する"],
+        explanation: "宅配業者からの正式な通知が、URL付きのSMSで届くことは基本的にありません。URLは開かず、公式サイトやアプリで配送状況を確認しましょう。"
+      }
+    },
+    {
+      id: "c4", name: "画面ロック式神", attr: "光", level: 2, atk: 900,
+      desc: "一瞬の隙も見逃さず、端末をすぐさま封印する。",
+      question: {
+        q: "席を離れてトイレに行く間、ノートパソコンの画面はどうするべき？",
+        options: ["画面をロックしてから離れる", "そのまま開けたまま離れる", "電源を切らずに画面を伏せるだけにする", "周りの人に見ておいてと頼む"],
+        explanation: "画面を開けたまま離れると、誰でも操作できてしまいます。少しの間でも席を離れるときは、必ず画面をロックしましょう。"
+      }
+    },
+    {
+      id: "c5", name: "ウイルススキャナー", attr: "光", level: 3, atk: 1200,
+      desc: "潜む不正プログラムを隅々まで洗い出す。",
+      question: {
+        q: "知らない人からのメールに、見たことのない拡張子の添付ファイルが付いていた。正しい対応は？",
+        options: ["安全が確認できない添付ファイルは開かない", "気になるのでとりあえず開いて確認する", "差出人に返信して内容を聞く", "ファイル名を変更してから開く"],
+        explanation: "知らない差出人からの不審な添付ファイルには、ウイルスが仕込まれている場合があります。安全が確認できないファイルは開かないようにしましょう。"
+      }
+    },
+    {
+      id: "c6", name: "プライバシー設定の守護者", attr: "水", level: 3, atk: 1200,
+      desc: "公開範囲を見直し、不要な情報漏れを防ぐ。",
+      question: {
+        q: "SNSに友達と一緒に撮った写真を投稿したい。正しい行動は？",
+        options: ["一緒に写っている友達に許可をもらってから投稿する", "友達だから許可をとらずにすぐに投稿する", "顔が少ししか写っていないので無断で投稿する", "後で消せばいいのでとりあえず投稿する"],
+        explanation: "自分以外の人が写っている写真を無断で公開すると、相手のプライバシーを侵害してしまいます。投稿前に必ず本人の許可をとりましょう。"
+      }
+    },
+    {
+      id: "c7", name: "アンチウイルス剣士", attr: "光", level: 4, atk: 1500,
+      desc: "悪意あるプログラムを検知し、斬り裂く。",
+      question: {
+        q: "「無料」をうたう怪しいアプリやソフトをダウンロードしようとしている。正しい対応は？",
+        options: ["公式の配布元か信頼できるか確認してからインストールする", "無料なのでとりあえずインストールしてみる", "友達がすすめていたのでそのまま入れる", "ウイルス対策ソフトを切ってからインストールする"],
+        explanation: "出どころの分からないアプリやソフトには、ウイルスが仕込まれていることがあります。インストール前に、公式の配布元か信頼できるかを必ず確認しましょう。"
+      }
+    },
+    {
+      id: "c8", name: "ファクトチェッカー", attr: "風", level: 4, atk: 1500,
+      desc: "フェイクニュースを見破り、真実の矢を放つ。",
+      question: {
+        q: "災害時、SNSで「〇〇地域で暴動が起きている」という投稿を見た。正しい対応は？",
+        options: ["公的機関などの信頼できる情報源で事実か確認する", "みんなに知らせるためにすぐにリツイート（拡散）する", "友達全員にLINEでその情報を転送する", "真実だと信じてすぐに行動を起こす"],
+        explanation: "災害時はデマや誤情報も一緒に拡散されやすくなります。拡散する前に、自治体や報道機関など信頼できる発信元で事実を確認しましょう。"
+      }
+    },
+    {
+      id: "c9", name: "二段階認証の盾", attr: "水", level: 5, atk: 1800,
+      desc: "一度の突破では崩れない鉄壁の防御。",
+      question: {
+        q: "「セキュリティ警告」と称して電話がかかってきて、口座情報を聞かれた。正しい対応は？",
+        options: ["その場で情報を伝えず、公式の窓口に自分で連絡して確認する", "信頼できそうな話し方だったので口座情報を伝える", "焦って言われた通りにすぐ対応する", "知らない番号だが念のため一部だけ情報を伝える"],
+        explanation: "電話の相手が本物の機関かは、その場では確認できません。一度電話を切り、公式の窓口へ自分で連絡し直しましょう。"
+      }
+    },
+    {
+      id: "c10", name: "PW・ジェネレータ", attr: "地", level: 5, atk: 1800,
+      desc: "複雑で強固な文字列を生成し、防御を崩させない。",
+      question: {
+        q: "パスワードを安全に管理する方法として正しいのは？",
+        options: ["異なるサービスで別々の長く複雑なパスワードを設定する", "覚えやすいように自分の誕生日をパスワードにする", "1つの強力なパスワードを全てのサイトで使い回す", "モニターの端に付箋でパスワードを貼っておく"],
+        explanation: "パスワードを使い回すと、1つのサービスで漏れた情報が他のサービスにも悪用されてしまいます。サービスごとに異なる複雑なパスワードを使いましょう。"
+      }
+    },
+    {
+      id: "c11", name: "ファイアウォール竜", attr: "炎", level: 6, atk: 2100,
+      desc: "不正なアクセスを業火で焼き尽くし遮断する。",
+      question: {
+        q: "カフェの「パスワードなしの無料Wi-Fi」を利用する際、避けるべき行動は？",
+        options: ["クレジットカード情報を入力してオンラインショッピングをする", "天気予報のサイトを閲覧する", "地図アプリでお店の場所を調べる", "ニュース記事を読む"],
+        explanation: "暗号化されていない無料Wi-Fiは通信を盗み見られる可能性があります。クレジットカード番号など重要な情報の入力は避けましょう。"
+      }
+    },
+    {
+      id: "c12", name: "暗号化の大魔導士", attr: "闇", level: 6, atk: 2100,
+      desc: "重要な情報を強固な暗号で包み、解読を許さない。",
+      question: {
+        q: "本物の銀行サイトとよく似た偽サイトを見分けるために最も重要な確認は？",
+        options: ["URLのスペルやドメインが正規のものと完全に一致しているか確認する", "サイトのデザインがきれいかどうかで判断する", "鍵マークが表示されていれば無条件に信頼する", "検索結果の上位に出てきたかどうかで判断する"],
+        explanation: "デザインや鍵マークだけでは偽サイトを見抜けません。URLのスペルやドメインが正規のものと完全に一致しているかを必ず確認しましょう。"
+      }
     }
+  ]
+};
 
-    init() {
-      this.renderBaseHTML();
-      
-      this.ui = {
-        playerHpText: this.container.querySelector('#ui-player-hp-text'),
-        playerHpBar: this.container.querySelector('#ui-player-hp-bar'),
-        enemyHpText: this.container.querySelector('#ui-enemy-hp-text'),
-        enemyHpBar: this.container.querySelector('#ui-enemy-hp-bar'),
-        handArea: this.container.querySelector('#ui-hand-area'),
-        enemyImg: this.container.querySelector('#ui-enemy-img'),
-        quizModal: this.container.querySelector('#ui-quiz-modal'),
-        quizQuestion: this.container.querySelector('#ui-quiz-question'),
-        quizOptions: this.container.querySelector('#ui-quiz-options'),
-        cutinOverlay: this.container.querySelector('#ui-cutin'),
-        startScreen: this.container.querySelector('#screen-start'),
-        resultScreen: this.container.querySelector('#screen-result'),
-        resultTitle: this.container.querySelector('#result-title'),
-        resultMessage: this.container.querySelector('#result-message')
-      };
+class CardBattleGame {
+  constructor(containerId, settings) {
+    this.container = document.getElementById(containerId);
+    this.settings = settings;
+    this.cardPool = settings.CARDS.map(card => ({
+      ...card,
+      atk: (typeof card.atk === 'number') ? card.atk : this.getAtkForLevel(card.level)
+    }));
 
-      this.container.addEventListener('click', this.boundHandleClick);
-    }
+    this.playerHp = settings.PLAYER_MAX_HP;
+    this.enemyHp = settings.ENEMY_MAX_HP;
+    this.deck = [];
+    this.hand = [];
+    this.score = 0;
 
-    renderBaseHTML() {
-      this.container.innerHTML = `
-        <div class="slant-header">
-          <div class="slant-header-inner">
-            <span>CYBER BATTLE</span>
-            <span>INFO-LITERACY</span>
-          </div>
-        </div>
+    this.currentCard = null;
+    this.currentQuestion = null;
+    this.pendingCorrect = false;
+    this.isGameOver = false;
+    this.isClear = false;
+    this.isBusy = false;
 
-        <div class="battle-area">
-          <div class="hp-container enemy-hp">
-            <div class="hp-label">ENEMY VIRUS</div>
-            <div class="hp-bar-bg">
-              <div id="ui-enemy-hp-bar" class="hp-bar-fill"></div>
-              <div id="ui-enemy-hp-text" class="hp-text">${this.enemyHp} / ${this.settings.ENEMY_MAX_HP}</div>
+    this.boundHandleClick = this.handleClick.bind(this);
+  }
+
+  getAtkForLevel(level) {
+    const b = this.settings.CARD_BALANCE;
+    return b.BASE_ATK + (level - 1) * b.ATK_PER_LEVEL;
+  }
+
+  // ===== INIT =====
+  init() {
+    this.renderBaseHTML();
+    this.cacheUI();
+    this.setupEnemyVisual();
+    this.container.addEventListener('click', this.boundHandleClick);
+  }
+
+  setupEnemyVisual() {
+    const path = this.settings.ENEMY_IMAGE;
+    if (!path) return;
+    const img = this.ui.enemyImage;
+    img.onload = () => {
+      this.ui.enemyFigure.classList.add('hidden');
+      img.classList.remove('hidden');
+    };
+    img.onerror = () => {
+      img.classList.add('hidden');
+      this.ui.enemyFigure.classList.remove('hidden');
+    };
+    img.src = path;
+  }
+
+  cacheUI() {
+    this.ui = {
+      playerHpRow: this.container.querySelector('#ui-player-hp-row'),
+      playerHpText: this.container.querySelector('#ui-player-hp-text'),
+      playerHpBar: this.container.querySelector('#ui-player-hp-bar'),
+      enemyHpRow: this.container.querySelector('#ui-enemy-hp-row'),
+      enemyHpText: this.container.querySelector('#ui-enemy-hp-text'),
+      enemyHpBar: this.container.querySelector('#ui-enemy-hp-bar'),
+      enemyFigure: this.container.querySelector('#ui-enemy-figure'),
+      enemyImage: this.container.querySelector('#ui-enemy-image'),
+      enemyDisplay: this.container.querySelector('#ui-enemy-display'),
+      handArea: this.container.querySelector('#ui-hand-area'),
+      symbolFlash: this.container.querySelector('#ui-symbol-flash'),
+      symbolMark: this.container.querySelector('#ui-symbol-mark'),
+      resultExplanation: this.container.querySelector('#ui-result-explanation'),
+      quizOverlay: this.container.querySelector('#ui-quiz-overlay'),
+      quizQuestion: this.container.querySelector('#ui-quiz-question'),
+      quizOptions: this.container.querySelector('#ui-quiz-options'),
+      startScreen: this.container.querySelector('#screen-start'),
+      battleScreen: this.container.querySelector('#screen-battle'),
+      resultScreen: this.container.querySelector('#screen-result'),
+      resultTitle: this.container.querySelector('#result-title'),
+      resultMessage: this.container.querySelector('#result-message')
+    };
+  }
+
+  renderBaseHTML() {
+    this.container.innerHTML = `
+      <div class="battle-screen hidden" id="screen-battle">
+        <div class="battle-status panel">
+          <div class="hp-row" id="ui-enemy-hp-row">
+            <div class="hp-row-top">
+              <span class="hp-label">CYBER VIRUS</span>
+              <span class="hp-value" id="ui-enemy-hp-text"></span>
+            </div>
+            <div class="hp-bar-row">
+              <span class="hp-bar-label">HP</span>
+              <div class="hp-bar-track">
+                <div class="hp-bar-fill" id="ui-enemy-hp-bar"></div>
+              </div>
             </div>
           </div>
 
-          <div id="ui-enemy-img" class="enemy-image"></div>
+          <div class="enemy-display" id="ui-enemy-display">
+            <svg viewBox="0 0 100 100" id="ui-enemy-figure" class="enemy-figure">
+              <circle class="ef-body" cx="50" cy="50" r="26"></circle>
+              <g class="ef-spike">
+                <line x1="50" y1="12" x2="50" y2="24"></line>
+                <line x1="50" y1="76" x2="50" y2="88"></line>
+                <line x1="12" y1="50" x2="24" y2="50"></line>
+                <line x1="76" y1="50" x2="88" y2="50"></line>
+                <line x1="24" y1="24" x2="32" y2="32"></line>
+                <line x1="76" y1="24" x2="68" y2="32"></line>
+                <line x1="24" y1="76" x2="32" y2="68"></line>
+                <line x1="76" y1="76" x2="68" y2="68"></line>
+              </g>
+              <circle class="ef-eye" cx="40" cy="47" r="5"></circle>
+              <circle class="ef-eye" cx="60" cy="47" r="5"></circle>
+            </svg>
+            <img class="enemy-image hidden" id="ui-enemy-image" alt="">
+          </div>
+        </div>
 
-          <div class="hp-container player-hp" style="margin-top: 10px;">
-            <div class="hp-label">PLAYER</div>
-            <div class="hp-bar-bg">
-              <div id="ui-player-hp-bar" class="hp-bar-fill"></div>
-              <div id="ui-player-hp-text" class="hp-text">${this.playerHp} / ${this.settings.PLAYER_MAX_HP}</div>
+        <div class="hand-area" id="ui-hand-area"></div>
+
+        <div class="player-status panel">
+          <div class="hp-row" id="ui-player-hp-row">
+            <div class="hp-row-top">
+              <span class="hp-label">あなた</span>
+              <span class="hp-value" id="ui-player-hp-text"></span>
+            </div>
+            <div class="hp-bar-row">
+              <span class="hp-bar-label">HP</span>
+              <div class="hp-bar-track">
+                <div class="hp-bar-fill" id="ui-player-hp-bar"></div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div id="ui-cutin" class="cutin-overlay"></div>
+      <div class="symbol-flash" id="ui-symbol-flash" data-action="dismiss-result">
+        <div class="result-modal">
+          <div class="result-top"><span class="symbol-mark" id="ui-symbol-mark"></span></div>
+          <div class="result-bottom" id="ui-result-explanation"></div>
+        </div>
+      </div>
 
-        <div id="ui-hand-area" class="hand-area"></div>
+      <div class="quiz-overlay" id="ui-quiz-overlay">
+        <div class="quiz-panel panel">
+          <div class="quiz-question" id="ui-quiz-question"></div>
+          <div class="quiz-options" id="ui-quiz-options"></div>
+        </div>
+      </div>
 
-        <div id="ui-quiz-modal" class="quiz-modal">
-          <div class="quiz-content">
-            <div id="ui-quiz-question" class="quiz-question"></div>
-            <div id="ui-quiz-options" class="quiz-options"></div>
+      <div class="screen-wrap" id="screen-start">
+        <div class="info-panel panel">
+          <div class="panel-title-wrap">
+            <div class="panel-title">情報リテラシー・カードバトル</div>
           </div>
+          <div class="panel-subtitle">知識のカードでウイルスを撃退しよう</div>
+          <div class="rules-box">
+            ルール<br>
+            ・手札のカードを1枚選んで出題に答える。<br>
+            ・正解すると、カードのATK分だけ敵にダメージを与える。<br>
+            ・不正解だと、敵から反撃を受けてしまう。<br>
+            ・★が多いカードほど攻撃力は高いが、問題も難しくなる。<br>
+            ・敵のHPを0にすればクリア。
+          </div>
+          <button class="btn-primary" data-action="start">バトルスタート</button>
         </div>
+      </div>
 
-        <div id="screen-start" class="screen">
-          <h1>CYBER<br>CARD BATTLE</h1>
-          <p>情報リテラシーの知識を力に変えろ！<br>カードを選び、クイズに正解して攻撃だ。</p>
-          <button class="btn-skew" data-action="start"><span>BATTLE START</span></button>
-        </div>
-
-        <div id="screen-result" class="screen hidden">
+      <div class="screen-wrap hidden" id="screen-result">
+        <div class="info-panel panel">
           <h1 id="result-title"></h1>
           <p id="result-message"></p>
-          <button class="btn-skew" data-action="finish"><span>システムからログアウト</span></button>
+          <button class="btn-primary" data-action="finish">システムからログアウト</button>
         </div>
-      `;
-    }
+      </div>
+    `;
+  }
 
-    handleClick(e) {
-      const action = e.target.closest('[data-action]')?.getAttribute('data-action');
-      
-      if (action === 'start') {
-        this.startGame();
-      } else if (action === 'finish') {
-        this.finishGame();
-      } else if (action === 'play-card' && !this.isGameOver && !this.isClear) {
-        const index = e.target.closest('.ygo-card').getAttribute('data-index');
-        this.playCard(parseInt(index, 10));
-      } else if (action === 'answer-quiz') {
-        const isCorrect = e.target.getAttribute('data-correct') === 'true';
-        this.handleAnswer(isCorrect);
-      }
-    }
+  handleClick(e) {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.getAttribute('data-action');
 
-    startGame() {
-      this.ui.startScreen.classList.add('hidden');
-      this.initDeck();
-      this.drawHand();
-      this.updateHpUI();
-    }
-
-    initDeck() {
-      this.deck = [];
-      for (let i = 0; i < 3; i++) {
-        this.deck = this.deck.concat(this.settings.CARDS);
-      }
-      this.shuffleArray(this.deck);
-    }
-
-    drawHand() {
-      this.hand = [];
-      for (let i = 0; i < this.settings.HAND_SIZE; i++) {
-        if (this.deck.length === 0) this.initDeck();
-        this.hand.push(this.deck.pop());
-      }
-      this.renderHand();
-    }
-
-    renderHand() {
-      this.ui.handArea.innerHTML = '';
-      this.hand.forEach((card, index) => {
-        const cardHTML = `
-          <div class="ygo-card" data-action="play-card" data-index="${index}">
-            <div class="ygo-header-row">
-              <div class="ygo-name" title="${card.name}">${card.name}</div>
-              <div class="ygo-attr">${card.attr}</div>
-            </div>
-            <div class="ygo-level">${card.level}</div>
-            <div class="ygo-image ${card.imgClass}"></div>
-            <div class="ygo-text-box">
-              <div class="ygo-type">${card.type}</div>
-              <div class="ygo-desc" title="${card.desc}">${card.desc}</div>
-              <div class="ygo-stats">ATK/${card.atk}</div>
-            </div>
-          </div>
-        `;
-        this.ui.handArea.insertAdjacentHTML('beforeend', cardHTML);
-      });
-    }
-
-    playCard(handIndex) {
-      this.currentCard = this.hand[handIndex];
-      this.hand.splice(handIndex, 1);
-      if (this.deck.length === 0) this.initDeck();
-      this.hand.splice(handIndex, 0, this.deck.pop());
-      this.renderHand();
-
-      this.showQuiz();
-    }
-
-    showQuiz() {
-      const qIndex = Math.floor(Math.random() * this.settings.QUESTIONS.length);
-      const qData = this.settings.QUESTIONS[qIndex];
-      
-      this.ui.quizQuestion.textContent = qData.q;
-      
-      const optionsWithMeta = qData.options.map((text, idx) => ({
-        text: text,
-        isCorrect: idx === 0
-      }));
-      const shuffledOptions = this.shuffleArray(optionsWithMeta);
-
-      this.ui.quizOptions.innerHTML = '';
-      shuffledOptions.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'quiz-option-btn';
-        btn.textContent = opt.text;
-        btn.setAttribute('data-action', 'answer-quiz');
-        btn.setAttribute('data-correct', opt.isCorrect);
-        this.ui.quizOptions.appendChild(btn);
-      });
-
-      this.ui.quizModal.classList.add('show');
-    }
-
-    handleAnswer(isCorrect) {
-      this.ui.quizModal.classList.remove('show');
-
-      if (isCorrect) {
-        this.showCutin('ATTACK!', 'cutin-attack');
-        setTimeout(() => {
-          this.totalDamageDealt += this.currentCard.atk;
-          this.enemyHp -= this.currentCard.atk;
-          if (this.enemyHp <= 0) this.enemyHp = 0;
-          this.playDamageAnim(this.ui.enemyImg);
-          this.updateHpUI();
-          this.checkWinLose();
-        }, 800);
-      } else {
-        this.showCutin('COUNTER!', 'cutin-counter');
-        setTimeout(() => {
-          this.playerHp -= this.settings.ENEMY_ATK;
-          if (this.playerHp <= 0) this.playerHp = 0;
-          this.updateHpUI();
-          this.checkWinLose();
-        }, 800);
-      }
-    }
-
-    showCutin(text, className) {
-      this.ui.cutinOverlay.textContent = text;
-      this.ui.cutinOverlay.className = `cutin-overlay show ${className}`;
-      setTimeout(() => {
-        this.ui.cutinOverlay.classList.remove('show');
-      }, 700);
-    }
-
-    playDamageAnim(element) {
-      element.classList.add('damage-anim');
-      setTimeout(() => {
-        element.classList.remove('damage-anim');
-      }, 300);
-    }
-
-    updateHpUI() {
-      const ePercent = Math.max(0, (this.enemyHp / this.settings.ENEMY_MAX_HP) * 100);
-      this.ui.enemyHpBar.style.width = `${ePercent}%`;
-      this.ui.enemyHpText.textContent = `${this.enemyHp} / ${this.settings.ENEMY_MAX_HP}`;
-
-      const pPercent = Math.max(0, (this.playerHp / this.settings.PLAYER_MAX_HP) * 100);
-      this.ui.playerHpBar.style.width = `${pPercent}%`;
-      this.ui.playerHpText.textContent = `${this.playerHp} / ${this.settings.PLAYER_MAX_HP}`;
-    }
-
-    checkWinLose() {
-      if (this.enemyHp <= 0) {
-        this.endGame(true, "ウイルスを完全に駆除した！");
-      } else if (this.playerHp <= 0) {
-        this.endGame(false, "システムが乗っ取られました...");
-      }
-    }
-
-    shuffleArray(array) {
-      const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    endGame(isClear, reasonMsg) {
-      this.isClear = isClear;
-      this.isGameOver = true;
-
-      setTimeout(() => {
-        this.ui.resultTitle.textContent = isClear ? "SYSTEM CLEAR" : "SYSTEM DOWN";
-        this.ui.resultTitle.style.color = isClear ? "#00d0ff" : "#ff3366";
-        
-        const score = this.totalDamageDealt + (isClear ? this.playerHp : 0);
-
-        this.ui.resultMessage.innerHTML = `
-          ${reasonMsg}<br><br>
-          BATTLE SCORE: ${score}
-        `;
-        
-        this.ui.resultScreen.classList.remove('hidden');
-      }, 500);
-    }
-
-    finishGame() {
-      const finalScore = this.totalDamageDealt + (this.isClear ? this.playerHp : 0);
-      
-      window.parent.postMessage({
-        type: 'MINIGAME_END',
-        flags: {
-          minigame_score: finalScore,
-          minigame_clear: this.isClear
-        }
-      }, '*');
-
-      this.destroy();
-    }
-
-    destroy() {
-      this.container.removeEventListener('click', this.boundHandleClick);
-      this.container.innerHTML = '';
-      console.log("CardBattleGame instance destroyed safely.");
+    if (action === 'start') {
+      this.startGame();
+    } else if (action === 'finish') {
+      this.finishGame();
+    } else if (action === 'play-card' && !this.isGameOver && !this.isBusy) {
+      const index = target.getAttribute('data-index');
+      this.playCard(parseInt(index, 10));
+    } else if (action === 'answer-quiz' && !target.disabled) {
+      const isCorrect = target.getAttribute('data-correct') === 'true';
+      this.handleAnswer(isCorrect, target);
+    } else if (action === 'dismiss-result') {
+      this.dismissResult();
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const game = new CardBattleGame('game-container', USER_SETTINGS);
-    game.init();
-  });
+  startGame() {
+    this.ui.startScreen.classList.add('hidden');
+    this.ui.battleScreen.classList.remove('hidden');
+    this.initDeck();
+    this.drawHand();
+    this.updateHpUI();
+  }
+
+  // ===== DECK / HAND =====
+  initDeck() {
+    this.deck = this.shuffleArray(this.cardPool);
+  }
+
+  drawHand() {
+    this.hand = [];
+    for (let i = 0; i < this.settings.HAND_SIZE; i++) {
+      if (this.deck.length === 0) break;
+      this.hand.push(this.deck.pop());
+    }
+    this.renderHand();
+  }
+
+  renderHand() {
+    this.ui.handArea.innerHTML = '';
+    this.hand.forEach((card, index) => {
+      const cardColor = this.getCardColor(card.attr);
+      const attrLabel = card.attr || '-';
+      const cardHTML = `
+        <div class="battle-card panel" data-action="play-card" data-index="${index}" style="--card-color: ${cardColor};">
+          <div class="card-level">${'★'.repeat(card.level)}</div>
+          <div class="card-name">${card.name}</div>
+          <div class="card-desc" title="${card.desc}">${card.desc}</div>
+          <div class="card-foot">
+            <div class="card-atk">ATK ${card.atk}</div>
+            <div class="card-attr">属性：${attrLabel}</div>
+          </div>
+        </div>
+      `;
+      this.ui.handArea.insertAdjacentHTML('beforeend', cardHTML);
+    });
+  }
+
+  getCardColor(attr) {
+    const colors = this.settings.ATTRIBUTE_COLORS;
+    return (attr && colors[attr]) ? colors[attr] : colors.DEFAULT;
+  }
+
+  playCard(handIndex) {
+    this.isBusy = true;
+    this.currentCard = this.hand[handIndex];
+    this.hand.splice(handIndex, 1);
+    if (this.deck.length > 0) {
+      this.hand.splice(handIndex, 0, this.deck.pop());
+    }
+    this.renderHand();
+
+    this.showQuiz(this.currentCard);
+  }
+
+  // ===== QUIZ FLOW =====
+  showQuiz(card) {
+    const qData = card.question;
+    this.currentQuestion = qData;
+
+    this.ui.quizQuestion.textContent = qData.q;
+
+    const optionsWithMeta = qData.options.map((text, idx) => ({
+      text: text,
+      isCorrect: idx === 0
+    }));
+    const shuffledOptions = this.shuffleArray(optionsWithMeta);
+
+    this.ui.quizOptions.innerHTML = '';
+    shuffledOptions.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-option';
+      btn.textContent = opt.text;
+      btn.setAttribute('data-action', 'answer-quiz');
+      btn.setAttribute('data-correct', opt.isCorrect);
+      this.ui.quizOptions.appendChild(btn);
+    });
+
+    this.ui.quizOverlay.classList.add('show');
+  }
+
+  handleAnswer(isCorrect, btnEl) {
+    const buttons = this.ui.quizOptions.querySelectorAll('.quiz-option');
+    buttons.forEach(b => b.disabled = true);
+
+    btnEl.classList.add(isCorrect ? 'is-correct' : 'is-incorrect');
+    btnEl.insertAdjacentHTML('afterbegin', `<span class="quiz-mark">${isCorrect ? '○' : '×'}</span>`);
+
+    setTimeout(() => {
+      this.ui.quizOverlay.classList.remove('show');
+      this.resolveAction(isCorrect);
+    }, this.settings.TIMING.ANSWER_FEEDBACK_MS);
+  }
+
+  // ===== BATTLE RESOLUTION =====
+  resolveAction(isCorrect) {
+    this.pendingCorrect = isCorrect;
+    this.showSymbolFlash(isCorrect);
+  }
+
+  showSymbolFlash(isCorrect) {
+    this.ui.symbolMark.textContent = isCorrect ? '○' : '✕';
+    this.ui.resultExplanation.textContent = this.currentQuestion.explanation;
+    this.ui.symbolFlash.className = `symbol-flash show ${isCorrect ? '' : 'is-wrong'}`.trim();
+  }
+
+  dismissResult() {
+    if (!this.ui.symbolFlash.classList.contains('show')) return;
+    this.ui.symbolFlash.classList.remove('show');
+
+    const isCorrect = this.pendingCorrect;
+    if (isCorrect) {
+      this.score += this.currentCard.atk;
+      this.enemyHp = Math.max(0, this.enemyHp - this.currentCard.atk);
+      this.playHitAnim(this.ui.enemyDisplay);
+    } else {
+      this.playerHp = Math.max(0, this.playerHp - this.settings.ENEMY_ATK);
+      this.playScreenShake();
+    }
+    this.updateHpUI();
+    this.isBusy = false;
+    this.checkWinLose();
+  }
+
+  playHitAnim(el) {
+    el.style.animationDuration = `${this.settings.TIMING.HIT_ANIM_MS}ms`;
+    el.classList.add('is-hit');
+    setTimeout(() => el.classList.remove('is-hit'), this.settings.TIMING.HIT_ANIM_MS);
+  }
+
+  playScreenShake() {
+    this.container.style.animationDuration = `${this.settings.TIMING.SCREEN_SHAKE_MS}ms`;
+    this.container.classList.add('is-shaking');
+    setTimeout(() => this.container.classList.remove('is-shaking'), this.settings.TIMING.SCREEN_SHAKE_MS);
+  }
+
+  // ===== UI UPDATE =====
+  updateHpUI() {
+    const enemyRatio = this.enemyHp / this.settings.ENEMY_MAX_HP;
+    this.ui.enemyHpText.textContent = `${this.enemyHp} / ${this.settings.ENEMY_MAX_HP}`;
+    this.ui.enemyHpBar.style.width = `${Math.max(0, enemyRatio) * 100}%`;
+    this.ui.enemyHpRow.classList.toggle('is-low', enemyRatio <= this.settings.LOW_HP_THRESHOLD);
+
+    const playerRatio = this.playerHp / this.settings.PLAYER_MAX_HP;
+    this.ui.playerHpText.textContent = `${this.playerHp} / ${this.settings.PLAYER_MAX_HP}`;
+    this.ui.playerHpBar.style.width = `${Math.max(0, playerRatio) * 100}%`;
+    this.ui.playerHpRow.classList.toggle('is-low', playerRatio <= this.settings.LOW_HP_THRESHOLD);
+  }
+
+  shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ===== GAME END =====
+  checkWinLose() {
+    if (this.enemyHp <= 0) {
+      this.endGame(true, "ウイルスを完全に駆除した！");
+    } else if (this.playerHp <= 0) {
+      this.endGame(false, "システムが乗っ取られました...");
+    }
+  }
+
+  endGame(isClear, reasonMsg) {
+    this.isClear = isClear;
+    this.isGameOver = true;
+    if (isClear) this.score += this.playerHp;
+
+    setTimeout(() => {
+      this.ui.resultTitle.textContent = isClear ? "SYSTEM CLEAR" : "SYSTEM DOWN";
+      this.ui.resultTitle.style.color = isClear ? "var(--accent)" : "var(--danger)";
+      this.ui.resultMessage.innerHTML = `${reasonMsg}<br><br>BATTLE SCORE: ${this.score}`;
+      this.ui.battleScreen.classList.add('hidden');
+      this.ui.resultScreen.classList.remove('hidden');
+    }, this.settings.TIMING.RESULT_DELAY_MS);
+  }
+
+  finishGame() {
+    window.parent.postMessage({
+      type: 'MINIGAME_END',
+      flags: {
+        minigame_score: this.score,
+        minigame_clear: this.isClear
+      }
+    }, '*');
+
+    this.destroy();
+  }
+
+  destroy() {
+    this.container.removeEventListener('click', this.boundHandleClick);
+    this.container.innerHTML = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const game = new CardBattleGame('game-container', USER_SETTINGS);
+  game.init();
+});
 </script>
 </body>
 </html>
