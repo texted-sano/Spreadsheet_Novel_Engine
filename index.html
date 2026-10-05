@@ -86,10 +86,10 @@
       <div class="system-panel">
         <div class="system-title">SYSTEM</div>
         <div class="system-row"><span class="system-label">テキスト速度</span><input type="range" class="system-slider" min="10" max="100" id="text-speed-slider" oninput="settings.textSpeed = parseInt(this.value)"></div>
-        <div class="system-row"><span class="system-label">BGM音量</span><input type="range" class="system-slider" min="0" max="100" id="bgm-slider" oninput="app.setBgmVolume(this.value)"></div>
-        <div class="system-row"><span class="system-label">SE音量</span><input type="range" class="system-slider" min="0" max="100" id="se-slider" oninput="settings.seVolume = this.value/100"></div>
-        <div class="system-row"><span class="system-label">ボイス音量</span><input type="range" class="system-slider" min="0" max="100" id="voice-slider" oninput="app.setVoiceVolume(this.value)"></div>
-        <div class="system-row"><span class="system-label">システム音量</span><input type="range" class="system-slider" min="0" max="100" id="sys-se-slider" oninput="settings.sysSeVolume = this.value/100"></div>
+        <div class="system-row"><span class="system-label">BGM音量</span><button type="button" class="mute-btn" data-mute-for="bgm-slider" onclick="app.toggleMute(this)" title="ミュート切替">♪</button><input type="range" class="system-slider" min="0" max="100" id="bgm-slider" oninput="app.setBgmVolume(this.value)"></div>
+        <div class="system-row"><span class="system-label">SE音量</span><button type="button" class="mute-btn" data-mute-for="se-slider" onclick="app.toggleMute(this)" title="ミュート切替">♪</button><input type="range" class="system-slider" min="0" max="100" id="se-slider" oninput="settings.seVolume = this.value/100"></div>
+        <div class="system-row"><span class="system-label">ボイス音量</span><button type="button" class="mute-btn" data-mute-for="voice-slider" onclick="app.toggleMute(this)" title="ミュート切替">♪</button><input type="range" class="system-slider" min="0" max="100" id="voice-slider" oninput="app.setVoiceVolume(this.value)"></div>
+        <div class="system-row"><span class="system-label">システム音量</span><button type="button" class="mute-btn" data-mute-for="sys-se-slider" onclick="app.toggleMute(this)" title="ミュート切替">♪</button><input type="range" class="system-slider" min="0" max="100" id="sys-se-slider" oninput="settings.sysSeVolume = this.value/100"></div>
         
         <div class="system-row">
           <span class="system-label">わかち書き</span>
@@ -130,6 +130,7 @@
         <div id="save-slots"></div>
         <div class="save-bottom-actions">
           <button class="sys-btn" id="save-close-btn" onclick="app.closeSaveLoad()">CLOSE</button>
+          <button class="sys-btn" id="reflection-open-btn" onclick="app.openReflection()" data-rf-label="ふりかえりシート" style="display: none;"></button>
           <button id="reset-all-btn" onclick="app.resetAllSaves()" style="display: none;">全データ初期化</button>
         </div>
       </div>
@@ -139,7 +140,7 @@
          ログ画面
          ====================================================================== -->
     <div id="log-screen" class="screen popup-overlay">
-      <div class="system-panel" style="width: min(800px, 90%); height: 80vh;">
+      <div class="system-panel" style="width: min(800px, 90%); max-height: 80vh;">
         <div class="system-title">LOG</div>
         <div id="log-list"></div>
         <button class="sys-btn" style="width: 100%;" onclick="app.closeLog()">CLOSE</button>
@@ -164,7 +165,9 @@
 
 <!-- ======================================================================
      JSファイルの読み込み
+     納品時チェック項目：GAME_SETTINGSの確認、scenario.js同梱の確認
      ====================================================================== -->
+<script> window.GAME_SETTINGS = { gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbz2RdlSuRsJuECeBpcb81mQQT9NrZIyiDqO9dQt6AU-0DSYAbIYYlC988C_Py-6N06u6g/exec' }; </script>
 <script src="scenario.js"></script>
 <script src="app.js"></script>
 
@@ -181,6 +184,42 @@
         <div style="display: flex; gap: 20px; justify-content: center;">
           <button class="sys-btn" id="confirm-yes-btn" style="flex: 1;">はい</button>
           <button class="sys-btn" id="confirm-no-btn" style="flex: 1; background: rgba(0,0,0,0.1); border-color: var(--ui-text-dim); color: var(--ui-text-dim);">いいえ</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ======================================================================
+     振り返りシート
+     ====================================================================== -->
+    <div id="reflection-screen" class="popup-overlay hidden">
+      <div class="system-panel" id="reflection-panel">
+        <div class="system-title" id="rf-sheet-title"></div>
+
+        <div id="reflection-sheet">
+          <!-- ① 年・組・名前・月日 -->
+          <div class="rf-profile">
+            <label class="rf-field"><input type="text" id="rf-nen" class="rf-input rf-input-xs"><span data-rf-label="｜年《ねん》"></span></label>
+            <label class="rf-field"><input type="text" id="rf-kumi" class="rf-input rf-input-xs"><span data-rf-label="｜組《くみ》"></span></label>
+            <label class="rf-field rf-field-grow"><span data-rf-label="【｜名《な》｜前《まえ》】"></span><input type="text" id="rf-name" class="rf-input"></label>
+            <label class="rf-field"><input type="text" id="rf-month" class="rf-input rf-input-xs"><span data-rf-label="｜月《がつ》"></span><input type="text" id="rf-day" class="rf-input rf-input-xs"><span data-rf-label="｜日《にち》"></span><span>（</span><input type="text" id="rf-week" class="rf-input rf-input-xs rf-input-week"><span>）</span></label>
+          </div>
+
+          <!-- ② ゲームのリザルト -->
+          <div class="rf-section">
+            <div class="rf-section-title" data-rf-label="ゲームの【｜結《けっ》｜果《か》】"></div>
+            <div id="rf-result"></div>
+          </div>
+
+          <!-- ③ 学んだこと・考えたこと -->
+          <div class="rf-section">
+            <div class="rf-section-title" data-rf-label="この【｜学《がく》｜習《しゅう》】で｜学《まな》んだこと・｜考《かんが》えたこと"></div>
+            <textarea id="rf-note" class="rf-note" rows="5"></textarea>
+          </div>
+        </div>
+
+        <div class="rf-actions">
+          <button class="sys-btn" id="rf-download-btn" onclick="app.downloadReflectionPdf()" data-rf-label="PDFでダウンロード"></button>
+          <button class="sys-btn" onclick="app.closeReflection()" data-rf-label="とじる"></button>
         </div>
       </div>
     </div>
